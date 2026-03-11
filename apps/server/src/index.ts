@@ -4,8 +4,7 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
-import { timestamp } from 'drizzle-orm/gel-core'
-import { start } from 'node:repl'
+import './db'
 
 //loading environment variables
 dotenv.config()
