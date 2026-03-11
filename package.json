@@ -1,0 +1,29 @@
+{
+  "name": "heatmap",
+  "version": "1.0.0",
+  "description": "Daily activity heatmap tracker with GitHub-style contribution graphs",
+  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev:server": "npm run dev --workspace=apps/server",
+    "dev:client": "npm run dev --workspace=apps/client",
+    "build:server": "npm run build --workspace=apps/server",
+    "build:client": "npm run build --workspace=apps/client"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NishaM2/Heatmap.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NishaM2/Heatmap/issues"
+  },
+  "homepage": "https://github.com/NishaM2/Heatmap#readme"
+}
