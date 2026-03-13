@@ -38,16 +38,19 @@ export const insertLogSchema = createInsertSchema(dailyLogs, {
         .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be in YYYY-MM-DD format'),
 })
 
+export const updateLogSchema = insertLogSchema.partial()
+
 //friendship
 export const insertFriendshipSchema = createInsertSchema(friendships, {
     receiverId: z.string().uuid('Invalid user ID'),
 })
 
 //shared goals
-export const insertSharedGoalsSchema = createInsertSchema(sharedGoals, {
+export const insertSharedGoalSchema = createInsertSchema(sharedGoals, {
     initiatorCategoryId: z.string().uuid('Invalid category ID'),
     receiverId: z.string().uuid('invalid user ID'),
 })
+export const updateSharedGoalSchema = insertSharedGoalSchema.partial()
 
 //auth Validators are not from Drizzle They are pure Zod
 //these are not generated from schema because they handle raw user input before it touches the database
@@ -70,6 +73,11 @@ export const loginSchema = z.object({
 export type InsertUser = z.infer<typeof insertUserSchema>
 export type SelectUser = z.infer<typeof selectUserSchema>
 export type InsertCategory = z.infer<typeof insertCategorySchema >
+export type UpdateCategory = z.infer<typeof updateCategorySchema>
 export type InsertLog = z.infer<typeof insertLogSchema>
+export type UpdateLog = z.infer<typeof updateLogSchema>
+export type InsertFriendship = z.infer<typeof insertFriendshipSchema>
+export type InsertSharedGoal = z.infer<typeof insertSharedGoalSchema>
+export type UpdateSharedGoal = z.infer<typeof updateSharedGoalSchema>
 export type RegisterInput = z.infer<typeof registerSchema>
-export type LoginInpot = z.infer<typeof loginSchema>
+export type LoginInput = z.infer<typeof loginSchema>
