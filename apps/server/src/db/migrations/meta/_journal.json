@@ -8,6 +8,13 @@
       "when": 1773220163611,
       "tag": "0000_mean_lady_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773558278555,
+      "tag": "0001_yellow_the_renegades",
+      "breakpoints": true
     }
   ]
 }

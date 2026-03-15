@@ -5,12 +5,17 @@ import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
 import './db'
+import { auth } from './auth'
+import { toNodeHandler } from 'better-auth/node'
 
 //loading environment variables
 dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 3000
+
+// Better auth handler
+app.all('/api/auth/*splat', toNodeHandler(auth))
 
 // It secures HTTP headers automatically and prevents from attacks
 app.use(helmet())

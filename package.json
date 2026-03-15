@@ -25,5 +25,8 @@
   "bugs": {
     "url": "https://github.com/NishaM2/Heatmap/issues"
   },
-  "homepage": "https://github.com/NishaM2/Heatmap#readme"
+  "homepage": "https://github.com/NishaM2/Heatmap#readme",
+  "dependencies": {
+    "pg": "^8.20.0"
+  }
 }
