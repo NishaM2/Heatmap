@@ -8,7 +8,7 @@ export const sharedGoalStatusEnum = pgEnum('shared_goal_status', ['pending', 'ac
 
 //users
 export const users = pgTable('users', {
-    id: uuid('id').defaultRandom().primaryKey(),
+    id: text('id').primaryKey(),
     email: text('email').notNull().unique(),
     username: text('username').notNull().unique(),
     passwordHash: text('password_hash'),
@@ -27,8 +27,8 @@ export const categories = pgTable('categories', {
     color: text('color').notNull().default('#22c55e'),
 
     // Is this categories added to overall heat map
-    iscore: boolean('is_core').notNull().default(false),
-    userId: uuid('user_id').notNull().references(() => users.id, {
+    isCore: boolean('is_core').notNull().default(false),
+    userId: text('user_id').notNull().references(() => betterAuthUsers.id, {
         onDelete: 'cascade'
     }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -53,7 +53,7 @@ export const dailyLogs = pgTable('dailylogs', {
     categoryId: uuid('category_id').notNull().references(() => categories.id, {
         onDelete: 'cascade'
     }),
-    userId: uuid('user_id').notNull().references(() => users.id, {
+    userId: text('user_id').notNull().references(() => betterAuthUsers.id, {
         onDelete: 'cascade'
     }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -66,10 +66,10 @@ export const dailyLogs = pgTable('dailylogs', {
 //friendships
 export const friendships = pgTable('friendships', {
     id: uuid('id').defaultRandom().primaryKey(),
-    requesterId: uuid('requester_id').notNull().references(() => users.id, {
+    requesterId: text('requester_id').notNull().references(() => users.id, {
         onDelete: 'cascade'
     }),
-    receiverId: uuid('receiver_id').notNull().references(() => users.id, {
+    receiverId: text('receiver_id').notNull().references(() => users.id, {
         onDelete: 'cascade'
     }),
     status: friendshipStatusEnum('status').notNull().default('pending'),
@@ -86,10 +86,10 @@ export const sharedGoals = pgTable('shared_goals', {
     receiverCategoryId: uuid('receiver_category_id').references(() => categories.id, {
         onDelete: 'set null'
     }),
-    initiatorId: uuid('initiator_id').notNull().references(() => users.id, {
+    initiatorId: text('initiator_id').notNull().references(() => betterAuthUsers.id, {
         onDelete: 'cascade'
     }),
-    receiverId: uuid('receiver_id').notNull().references(() => users.id, {
+    receiverId: text('receiver_id').notNull().references(() => betterAuthUsers.id, {
         onDelete: 'cascade'
     }),
 
@@ -149,7 +149,7 @@ export const betterAuthVerifications = pgTable('verification', {
 })
 
 //relations
-export const usersRelations = relations(users, ({many}) => ({
+export const usersRelations = relations(betterAuthUsers, ({many}) => ({
     categories: many(categories),
     dailyLogs: many(dailyLogs),
     sentFriendRequests: many(friendships, { relationName: 'requester' }),
@@ -159,9 +159,9 @@ export const usersRelations = relations(users, ({many}) => ({
 }))
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({
-    user: one(users, {
+    user: one(betterAuthUsers, {
         fields: [categories.userId],
-        references: [users.id],
+        references: [betterAuthUsers.id],
     }),
     dailyLogs: many(dailyLogs),
     initiatedSharedGoals: many(sharedGoals, { relationName: 'initiatorCategory' }),
@@ -173,34 +173,34 @@ export const dailyLogsRelations = relations(dailyLogs, ({ one }) => ({
         fields: [dailyLogs.categoryId],
         references: [categories.id],
     }),
-    users: one(users, {
+    users: one(betterAuthUsers, {
         fields: [dailyLogs.userId],
-        references: [users.id],
+        references: [betterAuthUsers.id],
     }),
 }))
 
 export const friendshipRelations = relations(friendships, ({ one }) => ({
-    requester: one(users, {
+    requester: one(betterAuthUsers, {
         fields: [friendships.requesterId],
-        references: [users.id],
+        references: [betterAuthUsers.id],
         relationName: 'requester'
     }),
-    receiver: one(users, {
+    receiver: one(betterAuthUsers, {
         fields: [friendships.receiverId],
-        references: [users.id],
+        references: [betterAuthUsers.id],
         relationName: 'receiver',
     }),
 }))
 
 export const sharedGoalsRelations = relations(sharedGoals, ({ one }) => ({
-    initiator: one(users, {
+    initiator: one(betterAuthUsers, {
         fields: [sharedGoals.initiatorId],
-        references: [users.id],
+        references: [betterAuthUsers.id],
         relationName: 'initiator',
     }),
-    receiver: one(users, {
+    receiver: one(betterAuthUsers, {
         fields: [sharedGoals.receiverId],
-        references: [users.id],
+        references: [betterAuthUsers.id],
         relationName: 'receiver',
     }),
     initiatorCategory: one(categories, {

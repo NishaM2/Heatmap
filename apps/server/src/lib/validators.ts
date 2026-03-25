@@ -21,6 +21,10 @@ export const insertCategorySchema = createInsertSchema(categories, {
         .max(30, 'category name cannot exceed 30 characters'),
     color: z.string()
         .regex(/^#[0-9A-Fa-f]{6}$/, 'color must be a valid hex code like #22c55e')
+}).omit({
+    userId: true,
+    id: true,
+    createdAt: true,
 })
 
 export const updateCategorySchema = insertCategorySchema.partial()

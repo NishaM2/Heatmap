@@ -7,6 +7,7 @@ import dotenv from 'dotenv'
 import './db'
 import { auth } from './auth'
 import { toNodeHandler } from 'better-auth/node'
+import categoryRouter from './api/category.routes'
 
 //loading environment variables
 dotenv.config()
@@ -40,6 +41,8 @@ app.get('/api/health', (req, res) => {
         environment: process.env.NODE_ENV
     })
 })
+
+app.use('/api/categories', categoryRouter)
 
 //error handler
 app.use((err: Error, req: express.Request, res: express.Response, next: NextFunction) => {
