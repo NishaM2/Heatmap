@@ -40,6 +40,12 @@ export const insertLogSchema = createInsertSchema(dailyLogs, {
         .optional(),
     date: z.string()
         .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be in YYYY-MM-DD format'),
+}).omit({
+    id: true,
+    userId: true,
+    createdAt: true,
+    updatedAt: true,
+    source: true,
 })
 
 export const updateLogSchema = insertLogSchema.partial()
