@@ -8,6 +8,7 @@ import './db'
 import { auth } from './auth'
 import { toNodeHandler } from 'better-auth/node'
 import categoryRouter from './api/category.routes'
+import logRouter from './api/log.routes'
 
 //loading environment variables
 dotenv.config()
@@ -43,6 +44,7 @@ app.get('/api/health', (req, res) => {
 })
 
 app.use('/api/categories', categoryRouter)
+app.use('/api/logs', logRouter)
 
 //error handler
 app.use((err: Error, req: express.Request, res: express.Response, next: NextFunction) => {

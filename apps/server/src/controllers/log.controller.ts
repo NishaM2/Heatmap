@@ -26,7 +26,7 @@ export const getOverallLog = async (req: Request, res: Response, next: NextFunct
 export const getYearLog = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.id;
-        const categoryId = req.params.categoryId;
+        const categoryId = req.params.categoryId as string;
         const year = req.query.year as string || new Date().getFullYear().toString();
         const yearLog = await logService.getLogsForYear(userId, categoryId, year)
         return res.status(200).json(yearLog)
@@ -38,8 +38,8 @@ export const getYearLog = async (req: Request, res: Response, next: NextFunction
 export const getDayLog = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.id;
-        const categoryId = req.params.categoryId;
-        const date = req.params.date;
+        const categoryId = req.params.categoryId as string;
+        const date = req.params.date as string;
         const DayLog = await logService.getDayDetail(userId, categoryId, date)
         return res.status(200).json(DayLog)
     } catch (error) {
