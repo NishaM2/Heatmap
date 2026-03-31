@@ -2,9 +2,9 @@ import { eq, and, gte, lte, inArray } from 'drizzle-orm'
 import { db } from '../db'
 import { categories, dailyLogs } from '../db/schema'
 
-export const upsertLog = async (userId: string, categoryId: string, date: string, effortLevel: number, note: string) => {
+export const upsertLog = async (userId: string, categoryId: string, date: string, effortLevel: number, note: string, source: 'manual' | 'github' | 'fitbit' = 'manual') => {
     const newlog = await db.insert(dailyLogs)
-        .values({ date, effortLevel, note, categoryId, userId, source: 'manual' })
+        .values({ date, effortLevel, note, categoryId, userId, source })
         .onConflictDoUpdate({
             target: [dailyLogs.date, dailyLogs.categoryId],
             set: { effortLevel, note, updatedAt: new Date() }
