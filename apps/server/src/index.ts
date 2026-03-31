@@ -10,6 +10,7 @@ import { toNodeHandler } from 'better-auth/node'
 import categoryRouter from './api/category.routes'
 import logRouter from './api/log.routes'
 import statsRouter from './api/stats.routes'
+import { startGitHubSyncJob } from './jobs/githubSync.job'
 
 //loading environment variables
 dotenv.config()
@@ -64,5 +65,6 @@ app.listen(PORT, () => {
     console.log(`Environment: ${process.env.NODE_ENV}`)
     console.log(`Health check: http://localhost:${PORT}/api/health`)
 })
+startGitHubSyncJob()
 
 export default app
