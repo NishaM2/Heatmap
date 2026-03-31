@@ -7,9 +7,12 @@ export const fetchGitHubActivity = async (githubUsername: string, accessToken: s
         auth: accessToken
     })
 
+    const userResponse = await octokit.rest.users.getAuthenticated()
+    const actualUsername = userResponse.data.login
+
     //fetch events from GitHub API
     const response = await octokit.rest.activity.listEventsForAuthenticatedUser({
-        username: githubUsername,
+        username: actualUsername,
         per_page: 100
     })
 
