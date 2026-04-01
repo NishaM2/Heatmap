@@ -1,9 +1,10 @@
 import { eq, and, or, like, ne } from 'drizzle-orm'
 import { db } from '../db'
-import { friendships, betterAuthUsers } from '../db/schema'
+import { friendships, betterAuthUsers, dailyLogs } from '../db/schema'
+import { calculateCurrentStreak } from './streak.service'
 
-export const getFriends = async (userId: string) => {
-    const friends = await db.select()
+export const getFriendsWithStats = async (userId: string) => {
+    const acceptedFriendships = await db.select()
         .from(friendships)
         .where(and(
             or(
@@ -12,7 +13,40 @@ export const getFriends = async (userId: string) => {
             ),
             eq(friendships.status, 'accepted')
         ))
-    return friends
+
+    if (acceptedFriendships.length === 0) return []
+
+    //for each friendship get friend details and streak
+    const friendsWithStats = await Promise.all(
+        acceptedFriendships.map(async (friendship) => {
+
+            //get the OTHER user's ID
+            const friendId = friendship.requesterId === userId
+                ? friendship.receiverId
+                : friendship.requesterId
+
+            //fetch friend's user details
+            const friendUser = await db.select()
+                .from(betterAuthUsers)
+                .where(eq(betterAuthUsers.id, friendId))
+
+            //fetch friend's logs for streak calculation
+            const logs = await db.select({ date: dailyLogs.date })
+                .from(dailyLogs)
+                .where(eq(dailyLogs.userId, friendId))
+
+            const dates = logs.map(l => l.date)
+            const currentStreak = calculateCurrentStreak(dates)
+
+            //return combined data
+            return {
+                friendshipId: friendship.id,
+                user: friendUser[0],
+                currentStreak
+            }
+        })
+    )
+    return friendsWithStats
 }
 
 export const getPendingRequests = async (userId: string) => {

@@ -3,8 +3,8 @@ import * as friendService from '../services/friend.service'
 
 export const getFriends = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const userId  = req.user!.id;
-        const friends = await friendService.getFriends(userId)
+        const userId = req.user!.id
+        const friends = await friendService.getFriendsWithStats(userId)
         return res.status(200).json(friends)
     } catch (error) {
         next(error)
