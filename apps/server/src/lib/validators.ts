@@ -52,8 +52,14 @@ export const updateLogSchema = insertLogSchema.partial()
 
 //friendship
 export const insertFriendshipSchema = createInsertSchema(friendships, {
-    receiverId: z.string().uuid('Invalid user ID'),
-})
+    receiverId: z.string().min(1, 'Receiver ID is required'),
+}).omit({
+        id: true,
+        requesterId: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+    })
 
 //shared goals
 export const insertSharedGoalSchema = createInsertSchema(sharedGoals, {

@@ -1,5 +1,5 @@
 {
-  "id": "ca24dab1-b019-400b-8428-ab9ceed01005",
+  "id": "1b9286df-0ae4-48d3-9432-9c275e5911fb",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -540,10 +540,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "friendships_requester_id_users_id_fk": {
-          "name": "friendships_requester_id_users_id_fk",
+        "friendships_requester_id_user_id_fk": {
+          "name": "friendships_requester_id_user_id_fk",
           "tableFrom": "friendships",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "requester_id"
           ],
@@ -553,10 +553,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "friendships_receiver_id_users_id_fk": {
-          "name": "friendships_receiver_id_users_id_fk",
+        "friendships_receiver_id_user_id_fk": {
+          "name": "friendships_receiver_id_user_id_fk",
           "tableFrom": "friendships",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "receiver_id"
           ],

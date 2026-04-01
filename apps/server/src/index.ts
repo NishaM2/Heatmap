@@ -12,6 +12,7 @@ import logRouter from './api/log.routes'
 import statsRouter from './api/stats.routes'
 import { startGitHubSyncJob } from './jobs/githubSync.job'
 import githubRouter from './api/github.routes'
+import friendRouter from './api/friend.routes'
 
 //loading environment variables
 dotenv.config()
@@ -50,6 +51,7 @@ app.use('/api/categories', categoryRouter)
 app.use('/api/logs', logRouter)
 app.use('/api/stats', statsRouter)
 app.use('/api/github', githubRouter)
+app.use('/api/friends', friendRouter)
 
 //error handler
 app.use((err: any, req: express.Request, res: express.Response, next: NextFunction) => {

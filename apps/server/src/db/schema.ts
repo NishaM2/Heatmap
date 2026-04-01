@@ -66,10 +66,10 @@ export const dailyLogs = pgTable('dailylogs', {
 //friendships
 export const friendships = pgTable('friendships', {
     id: uuid('id').defaultRandom().primaryKey(),
-    requesterId: text('requester_id').notNull().references(() => users.id, {
+    requesterId: text('requester_id').notNull().references(() => betterAuthUsers.id, {
         onDelete: 'cascade'
     }),
-    receiverId: text('receiver_id').notNull().references(() => users.id, {
+    receiverId: text('receiver_id').notNull().references(() => betterAuthUsers.id, {
         onDelete: 'cascade'
     }),
     status: friendshipStatusEnum('status').notNull().default('pending'),
