@@ -63,9 +63,16 @@ export const insertFriendshipSchema = createInsertSchema(friendships, {
 
 //shared goals
 export const insertSharedGoalSchema = createInsertSchema(sharedGoals, {
-    initiatorCategoryId: z.string().uuid('Invalid category ID'),
-    receiverId: z.string().uuid('invalid user ID'),
+  initiatorCategoryId: z.string().min(1, 'Category ID is required'),
+  receiverId: z.string().min(1, 'Receiver ID is required'),
+}).omit({
+  id: true,
+  initiatorId: true,
+  receiverCategoryId: true,
+  status: true,
+  createdAt: true,
 })
+
 export const updateSharedGoalSchema = insertSharedGoalSchema.partial()
 
 //auth Validators are not from Drizzle They are pure Zod
