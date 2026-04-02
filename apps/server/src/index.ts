@@ -16,6 +16,7 @@ import friendRouter from './api/friend.routes'
 import sharedGoalRouter from './api/sharedGoal.routes'
 import { createServer } from 'http'
 import { initSocket } from './lib/socket'
+import rateLimit from 'express-rate-limit'
 
 //loading environment variables
 dotenv.config()
@@ -46,6 +47,30 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 
+// Global rate limit — 100 requests per minute per IP
+const globalLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 100,
+    message: {
+        status: 'error',
+        message: 'Too many requests, please try again later'
+    }
+})
+
+// Auth rate limit — 5 attempts per 15 minutes
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: {
+        status: 'error',
+        message: 'Too many login attempts, please try again later'
+    }
+})
+
+app.use(globalLimiter)
+app.use('/api/auth/sign-in', authLimiter)
+app.use('/api/auth/sign-up', authLimiter)
+
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
@@ -66,9 +91,17 @@ app.use('/api/friends', friendRouter)
 app.use('/api/shared-goals', sharedGoalRouter)
 
 //error handler
+app.use((req: express.Request, res: express.Response) => {
+    res.status(404).json({
+        status: 'error',
+        message: `Route ${req.method} ${req.url} not found`
+    })
+})
+
 app.use((err: any, req: express.Request, res: express.Response, next: NextFunction) => {
     console.error(err.stack)
-    res.status(500).json({
+    const status = err.status || 500
+    res.status(status).json({
         status: 'error',
         message: process.env.NODE_ENV === 'production'
             ? 'internal server error'
