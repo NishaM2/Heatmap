@@ -2,6 +2,7 @@ import { eq, and, or, like, ne } from 'drizzle-orm'
 import { db } from '../db'
 import { friendships, betterAuthUsers, dailyLogs } from '../db/schema'
 import { calculateCurrentStreak } from './streak.service'
+import { sendNotification } from '../lib/socket'
 
 export const getFriendsWithStats = async (userId: string) => {
     const acceptedFriendships = await db.select()
@@ -97,6 +98,11 @@ export const sendRequest = async (userId: string, receiverId: string,) => {
             status: 'pending'
         })
         .returning()
+
+    sendNotification(receiverId, 'friend_request', `You have a new friend request`, {
+        friendshipId: newfriendship[0].id,
+        requesterId: userId
+    })
     return newfriendship
 }
 
@@ -121,6 +127,10 @@ export const acceptRequest = async (userId: string, friendshipId: string) => {
         .set({ status: 'accepted'})
         .where(eq(friendships.id, friendshipId))
         .returning()
+
+    sendNotification(request[0].requesterId, 'friend_accepted', `Your friend request was accepted`, {
+        friendshipId: friendshipId
+    })
     return updated[0]
 }
 

@@ -14,6 +14,8 @@ import { startGitHubSyncJob } from './jobs/githubSync.job'
 import githubRouter from './api/github.routes'
 import friendRouter from './api/friend.routes'
 import sharedGoalRouter from './api/sharedGoal.routes'
+import { createServer } from 'http'
+import { initSocket } from './lib/socket'
 
 //loading environment variables
 dotenv.config()
@@ -22,7 +24,15 @@ const app = express()
 const PORT = process.env.PORT || 3000
 
 // It secures HTTP headers automatically and prevents from attacks
-app.use(helmet())
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            connectSrc: ["'self'", "ws://localhost:3000"]
+        }
+    }
+}))
 
 app.use(cors ({
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
@@ -66,7 +76,10 @@ app.use((err: any, req: express.Request, res: express.Response, next: NextFuncti
     })
 })
 
-app.listen(PORT, () => {
+const httpServer = createServer(app)
+initSocket(httpServer)
+
+httpServer.listen(PORT, () => {
     console.log(`server Running on http://localhost:${PORT}`)
     console.log(`Environment: ${process.env.NODE_ENV}`)
     console.log(`Health check: http://localhost:${PORT}/api/health`)

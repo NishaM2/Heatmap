@@ -2,6 +2,7 @@ import { eq, and, or } from 'drizzle-orm'
 import { db } from '../db'
 import { sharedGoals, categories, friendships } from '../db/schema'
 import { getLogsForYear } from './log.service'
+import { sendNotification } from '../lib/socket'
 
 export const createSharedGoal = async (userId: string, initiatorCategoryId: string, receiverId: string) => {
     const categoryexist = await db.select()
@@ -47,6 +48,10 @@ export const createSharedGoal = async (userId: string, initiatorCategoryId: stri
             status: 'pending'
         })
         .returning()
+    
+    sendNotification(receiverId, 'shared_goal_invite', `You have a new shared goal invite`, {
+        sharedGoalId: newGoal[0].id
+    })
     return newGoal[0]
 }
 
@@ -97,6 +102,10 @@ export const acceptSharedGoal = async (userId: string, sharedGoalId: string, rec
         })
         .where(eq(sharedGoals.id, sharedGoalId))
         .returning()
+
+    sendNotification(goal[0].initiatorId, 'shared_goal_accepted', `Your shared goal invite was accepted`, {
+        sharedGoalId: sharedGoalId
+    })
     return updated[0]
 }
 
