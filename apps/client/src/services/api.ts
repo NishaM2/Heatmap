@@ -27,7 +27,7 @@ export const authApi = {
             body: JSON.stringify(data),
         }),
 
-    SignIn: (data: { email: string; password: string }) =>
+    signIn: (data: { email: string; password: string }) =>
         request('/auth/sign-in/email', {
             method: 'POST',
             body: JSON.stringify(data),
