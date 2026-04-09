@@ -24,8 +24,8 @@ const RegisterPage = () => {
       await authApi.signUp({ name, email, password })
       await refetch()
       navigate('/dashboard')
-    } catch (err: any) {
-      setError(err.message || 'Registration failed')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message: 'Login failed')
     } finally {
       setLoading(false)
     }
