@@ -1,6 +1,19 @@
 import Navbar from '@/components/Navbar'
+import HeatmapGrid from '@/components/HeatmapGrid'
 
 const DashboardPage = () => {
+  const currentYear = new Date().getFullYear()
+
+  // Dummy logs for testing
+  const testLogs = [
+    { date: '2026-04-01', effortLevel: 3 },
+    { date: '2026-04-02', effortLevel: 1 },
+    { date: '2026-04-03', effortLevel: 4 },
+    { date: '2026-04-04', effortLevel: 2 },
+    { date: '2026-03-30', effortLevel: 3 },
+    { date: '2026-03-29', effortLevel: 4 },
+  ]
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -11,15 +24,13 @@ const DashboardPage = () => {
         </div>
 
         <div className="rounded-lg border bg-card p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Overall</h2>
-          <div className="h-24 bg-muted rounded animate-pulse" />
-        </div>
-
-        <div className="space-y-4">
-          <div className="rounded-lg border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Coding</h2>
-            <div className="h-24 bg-muted rounded animate-pulse" />
-          </div>
+          <h2 className="text-lg font-semibold mb-4">Coding</h2>
+          <HeatmapGrid
+            year={currentYear}
+            logs={testLogs}
+            categoryColor="#22c55e"
+            onDayClick={(date) => console.log('Clicked:', date)}
+          />
         </div>
       </main>
     </div>
