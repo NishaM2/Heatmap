@@ -6,6 +6,8 @@ import { useCategoryStats } from '@/hooks/useStats'
 import { useAuth } from '@/hooks/useAuth'
 import { useUIStore } from '@/store/uiStore'
 import { Flame, Trophy, Calendar, Star } from 'lucide-react'
+import DayModal from '@/components/DayModal'
+import type { Category } from '@/types'
 
 const currentYear = new Date().getFullYear().toString()
 
@@ -42,7 +44,7 @@ const StatsBar = ({ categoryId }: { categoryId: string }) => {
 }
 
 // Single category heatmap card
-const CategoryCard = ({ category }: { category: any }) => {
+const CategoryCard = ({ category }: { category: Category }) => {
   const { data: logs = [] } = useYearLogs(category.id, currentYear)
   const { openDayModal } = useUIStore()
 
@@ -137,11 +139,12 @@ const DashboardPage = () => {
             </p>
           </div>
         ) : (
-          categories.map((category: any) => (
+          categories.map((category: Category) => (
             <CategoryCard key={category.id} category={category} />
           ))
         )}
       </main>
+      <DayModal/>
     </div>
   )
 }
