@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import Navbar from '@/components/Navbar'
 import HeatmapGrid from '@/components/HeatmapGrid'
 import { useCategories } from '@/hooks/useCategories'
@@ -5,15 +6,17 @@ import { useYearLogs, useOverallLogs } from '@/hooks/useLogs'
 import { useCategoryStats } from '@/hooks/useStats'
 import { useAuth } from '@/hooks/useAuth'
 import { useUIStore } from '@/store/uiStore'
-import { Flame, Trophy, Calendar, Star } from 'lucide-react'
+import { Flame, Trophy, Calendar, Star, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import DayModal from '@/components/DayModal'
 import type { Category } from '@/types'
+import { Button } from '@/components/ui/button'
+import CreateCategoryModal from '@/components/CreateCategoryModal'
 
-const currentYear = new Date().getFullYear().toString()
+const currentYear = new Date().getFullYear()
 
 // Stats bar for each category
 const StatsBar = ({ categoryId }: { categoryId: string }) => {
-  const { data: stats } = useCategoryStats(categoryId, currentYear)
+  const { data: stats } = useCategoryStats(categoryId, currentYear.toString())
 
   if (!stats) return null
 
@@ -44,8 +47,8 @@ const StatsBar = ({ categoryId }: { categoryId: string }) => {
 }
 
 // Single category heatmap card
-const CategoryCard = ({ category }: { category: Category }) => {
-  const { data: logs = [] } = useYearLogs(category.id, currentYear)
+const CategoryCard = ({ category, year }: { category: Category, year: number }) => {
+  const { data: logs = [] } = useYearLogs(category.id, year.toString())
   const { openDayModal } = useUIStore()
 
   return (
@@ -64,7 +67,7 @@ const CategoryCard = ({ category }: { category: Category }) => {
       </div>
       <StatsBar categoryId={category.id} />
       <HeatmapGrid
-        year={parseInt(currentYear)}
+        year={currentYear}
         logs={logs}
         categoryColor={category.color}
         onDayClick={(date) => openDayModal(date, category.id)}
@@ -74,8 +77,8 @@ const CategoryCard = ({ category }: { category: Category }) => {
 }
 
 // Overall heatmap card
-const OverallCard = () => {
-  const { data: overallLogs = [] } = useOverallLogs(currentYear)
+const OverallCard = ({ year }: { year: number }) => {
+  const { data: overallLogs = [] } = useOverallLogs(year.toString())
   const { openDayModal } = useUIStore()
 
   return (
@@ -87,7 +90,7 @@ const OverallCard = () => {
         </span>
       </div>
       <HeatmapGrid
-        year={parseInt(currentYear)}
+        year={currentYear}
         logs={[]}
         categoryColor="#6366f1"
         onDayClick={(date) => openDayModal(date, '')}
@@ -99,9 +102,11 @@ const OverallCard = () => {
 }
 
 const DashboardPage = () => {
+  const [year, setYear] = useState(new Date().getFullYear())
+  const [createModalOpen, setCreateModalOpen] = useState(false)
   const { user } = useAuth()
   const { data: categories = [], isLoading } = useCategories()
-
+  
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -127,8 +132,41 @@ const DashboardPage = () => {
           </p>
         </div>
 
+        <div className="flex items-center gap-2 mb-6 justify-end">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setYear(y => y - 1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm font-medium w-12 text-center">{year}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setYear(y => y + 1)}
+            disabled={year >= currentYear}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Button
+          size="sm"
+          onClick={() => setCreateModalOpen(true)}
+          disabled={categories.length >= 5}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Add Category
+        </Button>
+
+        <CreateCategoryModal
+          open={createModalOpen}
+          onClose={() => setCreateModalOpen(false)}
+        />
+
         {/* Overall heatmap */}
-        <OverallCard />
+        <OverallCard year={year} />
 
         {/* Category heatmaps */}
         {categories.length === 0 ? (
@@ -140,7 +178,7 @@ const DashboardPage = () => {
           </div>
         ) : (
           categories.map((category: Category) => (
-            <CategoryCard key={category.id} category={category} />
+            <CategoryCard key={category.id} category={category}  year={year}/>
           ))
         )}
       </main>

@@ -78,6 +78,9 @@ export const logApi = {
 
     getDay: (categoryId: string, date: string) =>
         request(`/logs/${categoryId}/${date}`),
+       
+    delete: (id: string) =>
+        request(`/logs/${id}`, { method: 'DELETE' }),
 }
 
 //stats

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useUIStore } from '@/store/uiStore'
-import { useUpsertLog, useDayLog } from '@/hooks/useLogs'
+import { useUpsertLog, useDayLog, useDeleteLog } from '@/hooks/useLogs'
 import { useCategories } from '@/hooks/useCategories'
 import { formatDateLabel, checkIsFuture } from '@/lib/dateUtils'
 import {
@@ -26,7 +26,7 @@ const DayModal = () => {
   const { data: existingLog } = useDayLog(selectedCategoryId || '', selectedDate || '')
   const { data: categories = [] } = useCategories()
   const upsertLog = useUpsertLog()
-
+  const deleteLog = useDeleteLog()
   const [effortLevel, setEffortLevel] = useState<number | null>(null)
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
@@ -130,6 +130,17 @@ const DayModal = () => {
         )}
 
         <DialogFooter>
+          {existingLog && !isFutureDate && (
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                await deleteLog.mutateAsync(existingLog.id)
+                closeDayModal()
+              }}
+            >
+              Delete
+            </Button>
+          )}
           <Button variant="outline" onClick={closeDayModal}>
             Cancel
           </Button>
