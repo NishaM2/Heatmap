@@ -80,6 +80,28 @@ app.get('/api/health', (req, res) => {
     })
 })
 
+
+app.get('/api/auth/signin/github', async (req, res) => {
+  try {
+    const result = await auth.api.signInSocial({
+      body: {
+        provider: 'github' as const,
+        callbackURL: 'http://localhost:5173/dashboard'
+      },
+      asResponse: true
+    });
+    result.headers.forEach((value: string, key: string) => {
+      res.setHeader(key, value);
+    });
+    const data = await result.json() as { url?: string };
+    if (data.url) return res.redirect(data.url);
+    res.json(data);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 // Better auth handler
 app.all('/api/auth/*splat', toNodeHandler(auth))
 

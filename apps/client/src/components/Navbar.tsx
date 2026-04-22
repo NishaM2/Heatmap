@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
+import { useFriendRequests } from '@/hooks/useFriends'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -14,6 +15,8 @@ import { LayoutDashboard, Users, Settings, LogOut, Activity } from 'lucide-react
 const Navbar = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { data: requests = [] } = useFriendRequests()
+  const requestCount = requests.length
 
   const handleLogout = async () => {
     await logout()
@@ -37,9 +40,14 @@ const Navbar = () => {
             </Link>
           </Button>
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/friends">
+            <Link to="/friends" className="relative">
               <Users className="h-4 w-4 mr-2" />
               Friends
+              {requestCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                  {requestCount}
+                </span>
+              )}
             </Link>
           </Button>
           <Button variant="ghost" size="sm" asChild>

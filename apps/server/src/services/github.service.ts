@@ -1,40 +1,49 @@
 import { Octokit } from '@octokit/rest';
 import { upsertLog } from './log.service';
 
-export const fetchGitHubActivity = async (githubUsername: string, accessToken: string): Promise<Record<string, number>> => {
-    //create Octokit instance with the user's token
-    const octokit = new Octokit({
-        auth: accessToken
-    })
+export const fetchGitHubActivity = async (
+  githubUsername: string,
+  accessToken: string
+): Promise<Record<string, number>> => {
+  const octokit = new Octokit({ auth: accessToken });
 
-    const userResponse = await octokit.rest.users.getAuthenticated()
-    const actualUsername = userResponse.data.login
+  // Get actual username first
+  const userResponse = await octokit.rest.users.getAuthenticated();
+  const actualUsername = userResponse.data.login;
 
-    //fetch events from GitHub API
-    const response = await octokit.rest.activity.listEventsForAuthenticatedUser({
-        username: actualUsername,
-        per_page: 100
-    })
-
-    //group commit counts by date
-    const commitsByDate: Record<string, number> = {}
-    for (const event of response.data) {
-        //only care about push events
-        if (event.type !== 'PushEvent') continue
-
-        //extract date from created_at (remove time part)
-        const date = event.created_at!.split('T')[0]
-        // "2026-03-20T10:30:00Z"  "2026-03-20"
-
-        // Count commits in this push event
-        const payload = event.payload as any
-        const commitCount = payload.commits?.length || 0
-
-        // Add to existing count for that date
-        commitsByDate[date] = (commitsByDate[date] || 0) + commitCount
+  // GraphQL query for full year contributions
+  const query = `
+    query($username: String!) {
+      user(login: $username) {
+        contributionsCollection {
+          contributionCalendar {
+            weeks {
+              contributionDays {
+                date
+                contributionCount
+              }
+            }
+          }
+        }
+      }
     }
-    return commitsByDate
-}
+  `;
+
+  const data: any = await octokit.graphql(query, { username: actualUsername });
+
+  const commitsByDate: Record<string, number> = {};
+
+  const weeks = data.user.contributionsCollection.contributionCalendar.weeks;
+  for (const week of weeks) {
+    for (const day of week.contributionDays) {
+      if (day.contributionCount > 0) {
+        commitsByDate[day.date] = day.contributionCount;
+      }
+    }
+  }
+
+  return commitsByDate;
+};
 
 export const mapCommitsToEffortLevel = (commitCount: number): number => {
     if (commitCount >= 10) return 4

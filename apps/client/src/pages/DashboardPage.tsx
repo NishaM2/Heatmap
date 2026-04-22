@@ -6,49 +6,22 @@ import { useYearLogs, useOverallLogs } from '@/hooks/useLogs'
 import { useCategoryStats } from '@/hooks/useStats'
 import { useAuth } from '@/hooks/useAuth'
 import { useUIStore } from '@/store/uiStore'
-import { Flame, Trophy, Calendar, Star, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Globe } from 'lucide-react'
 import DayModal from '@/components/DayModal'
 import type { Category } from '@/types'
 import { Button } from '@/components/ui/button'
 import CreateCategoryModal from '@/components/CreateCategoryModal'
+import HeatmapSkeleton from '@/components/HeatmapSkeleton'
+import { useGithubSync } from '@/hooks/useGithub'
+import StreakCounter from '@/components/StreakCounter'
+import MilestoneAlert from '@/components/MilestoneAlert'
 
 const currentYear = new Date().getFullYear()
-
-// Stats bar for each category
-const StatsBar = ({ categoryId }: { categoryId: string }) => {
-  const { data: stats } = useCategoryStats(categoryId, currentYear.toString())
-
-  if (!stats) return null
-
-  return (
-    <div className="flex gap-6 mb-4">
-      <div className="flex items-center gap-1.5">
-        <Flame className="h-4 w-4 text-orange-500" />
-        <span className="text-sm font-medium">{stats.currentStreak}</span>
-        <span className="text-xs text-muted-foreground">current</span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <Trophy className="h-4 w-4 text-yellow-500" />
-        <span className="text-sm font-medium">{stats.longestStreak}</span>
-        <span className="text-xs text-muted-foreground">longest</span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <Calendar className="h-4 w-4 text-blue-500" />
-        <span className="text-sm font-medium">{stats.totalActiveDays}</span>
-        <span className="text-xs text-muted-foreground">total days</span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <Star className="h-4 w-4 text-purple-500" />
-        <span className="text-sm font-medium">{stats.bestMonth || 'N/A'}</span>
-        <span className="text-xs text-muted-foreground">best month</span>
-      </div>
-    </div>
-  )
-}
 
 // Single category heatmap card
 const CategoryCard = ({ category, year }: { category: Category, year: number }) => {
   const { data: logs = [] } = useYearLogs(category.id, year.toString())
+  const { data: stats } = useCategoryStats(category.id, year.toString())
   const { openDayModal } = useUIStore()
 
   return (
@@ -65,13 +38,25 @@ const CategoryCard = ({ category, year }: { category: Category, year: number }) 
           </span>
         )}
       </div>
-      <StatsBar categoryId={category.id} />
-      <HeatmapGrid
-        year={currentYear}
-        logs={logs}
-        categoryColor={category.color}
-        onDayClick={(date) => openDayModal(date, category.id)}
-      />
+
+      {stats && (
+        <>
+          <MilestoneAlert currentStreak={stats.currentStreak} />
+          <StreakCounter
+            currentStreak={stats.currentStreak}
+            longestStreak={stats.longestStreak}
+          />
+        </>
+      )}
+
+      <div className="mt-4">
+        <HeatmapGrid
+          year={year}
+          logs={logs}
+          categoryColor={category.color}
+          onDayClick={(date) => openDayModal(date, category.id)}
+        />
+      </div>
     </div>
   )
 }
@@ -105,6 +90,7 @@ const DashboardPage = () => {
   const [year, setYear] = useState(new Date().getFullYear())
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const { user } = useAuth()
+  const githubSync = useGithubSync()
   const { data: categories = [], isLoading } = useCategories()
   
   if (isLoading) {
@@ -112,8 +98,13 @@ const DashboardPage = () => {
       <div className="min-h-screen bg-background">
         <Navbar />
         <main className="max-w-6xl mx-auto px-4 py-8">
-          <div className="h-32 bg-muted rounded-lg animate-pulse mb-4" />
-          <div className="h-32 bg-muted rounded-lg animate-pulse" />
+          <div className="mb-8">
+            <div className="h-8 w-48 bg-muted rounded animate-pulse mb-2" />
+            <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+          </div>
+          <HeatmapSkeleton />
+          <HeatmapSkeleton />
+          <HeatmapSkeleton />
         </main>
       </div>
     )
@@ -165,20 +156,45 @@ const DashboardPage = () => {
           onClose={() => setCreateModalOpen(false)}
         />
 
-        {/* Overall heatmap */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => githubSync.mutate()}
+          disabled={githubSync.isPending}
+        >
+          <Globe className="h-4 w-4 mr-1" />
+          {githubSync.isPending ? 'Syncing...' : 'Sync GitHub'}
+        </Button>
+
+        {githubSync.isSuccess && (
+          <span className="text-xs text-green-500">
+            ✓ Synced successfully
+          </span>
+        )}
+
+        {githubSync.isError && (
+          <span className="text-xs text-destructive">
+            Sync failed
+          </span>
+        )}
+
         <OverallCard year={year} />
 
-        {/* Category heatmaps */}
         {categories.length === 0 ? (
           <div className="rounded-lg border bg-card p-12 text-center">
-            <p className="text-muted-foreground mb-2">No categories yet</p>
-            <p className="text-sm text-muted-foreground">
-              Create your first category to start tracking
+            <div className="text-4xl mb-4">🌱</div>
+            <h3 className="text-lg font-semibold mb-2">Start your journey</h3>
+            <p className="text-muted-foreground text-sm mb-6">
+              Create your first category to begin tracking your consistency
             </p>
+            <Button onClick={() => setCreateModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create your first category
+            </Button>
           </div>
         ) : (
           categories.map((category: Category) => (
-            <CategoryCard key={category.id} category={category}  year={year}/>
+            <CategoryCard key={category.id} category={category} year={year} />
           ))
         )}
       </main>

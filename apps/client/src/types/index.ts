@@ -6,3 +6,30 @@ export interface Category {
   userId: string
   createdAt: string
 }
+
+export interface Friend {
+  friendshipId: string
+  currentStreak: number
+  user: {
+    id: string
+    name: string
+    email: string
+    image: string | null
+  }
+}
+
+export interface FriendRequest {
+  id: string
+  requesterId: string
+  receiverId: string
+  status: 'pending' | 'accepted' | 'declined'
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SearchUser {
+  id: string
+  name: string
+  email: string
+  image: string | null
+}

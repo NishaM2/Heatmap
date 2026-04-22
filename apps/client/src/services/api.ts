@@ -96,7 +96,7 @@ export const friendApi = {
     getRequests: () => request('/friends/requests'),
 
     search: (username: string) =>
-        request(`/friends/search?username=${username}`),
+        request(`/friends/search?username=${encodeURIComponent(username)}`),
 
     sendRequest: (receiverId: string) =>
         request('/friends/request', {

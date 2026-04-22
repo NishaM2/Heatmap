@@ -39,6 +39,7 @@ const RegisterPage = () => {
           <CardDescription>Start tracking your consistency</CardDescription>
         </CardHeader>
         <CardContent>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
@@ -80,7 +81,24 @@ const RegisterPage = () => {
               {loading ? 'Creating account...' : 'Create account'}
             </Button>
           </form>
+
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          <a
+            href="http://localhost:3000/api/auth/signin/github"
+            className="w-full"
+          >
+            <Button variant="outline" className="w-full flex items-center gap-2">
+              Continue with GitHub
+            </Button>
+          </a>
+
         </CardContent>
+        
         <CardFooter className="justify-center">
           <p className="text-sm text-muted-foreground">
             Already have an account?{' '}
