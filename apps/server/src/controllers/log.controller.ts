@@ -47,3 +47,13 @@ export const getDayLog = async (req: Request, res: Response, next: NextFunction)
     }
 }
 
+export const deleteLog = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user!.id;
+        const id = req.params.id as string;
+        await logService.deleteLog(userId, id)
+        return res.status(200).json({ message: 'Log deleted' })
+    } catch (error) {
+        next(error)
+    }
+}

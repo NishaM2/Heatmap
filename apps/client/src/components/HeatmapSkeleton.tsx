@@ -12,7 +12,7 @@ const HeatmapSkeleton = () => {
       </div>
       <div className="h-20 bg-muted rounded" />
     </div>
-  )
+  ) 
 }
 
 export default HeatmapSkeleton

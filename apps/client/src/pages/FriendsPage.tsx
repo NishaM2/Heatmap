@@ -16,7 +16,11 @@ import {
   useUnfriend,
 } from '@/hooks/useFriends'
 import { Search, UserPlus, Check, X } from 'lucide-react'
-import type { Friend, FriendRequest, SearchUser } from '@/types'
+import type { Friend, FriendRequest, SearchUser, SharedGoal } from '@/types'
+import { useNavigate } from 'react-router-dom'
+import { useSharedGoals, useAcceptSharedGoal, useDeclineSharedGoal } from '@/hooks/useFriends'
+import { useAuth } from '@/hooks/useAuth'
+import AcceptGoalModal from '@/components/AcceptGoalModal'
 
 // Search results component
 const SearchResults = ({ username }: { username: string }) => {
@@ -183,6 +187,112 @@ const FriendsList = () => {
   )
 }
 
+// Shared goals
+const SharedGoalsList = () => {
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const [acceptingGoalId, setAcceptingGoalId] = useState<string | null>(null)
+
+  const { data: goals = [], isLoading } = useSharedGoals()
+  const acceptGoal = useAcceptSharedGoal()
+  const declineGoal = useDeclineSharedGoal()
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        {[1, 2].map(i => (
+          <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+        ))}
+      </div>
+    )
+  }
+
+  if (goals.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-4xl mb-3">🎯</div>
+        <p className="text-lg font-medium mb-1">No shared goals yet</p>
+        <p className="text-muted-foreground text-sm">
+          Click "Track Together" on a friend to start one
+        </p>
+      </div>
+    )
+  }
+
+    return (
+    <>
+      <div className="space-y-2">
+        {goals.map((goal: SharedGoal) => {
+          const isReceiver = goal.receiverId === user?.id
+
+          return (
+            <div
+              key={goal.id}
+              className="flex items-center justify-between p-4 rounded-lg border bg-card"
+            >
+              <div>
+                <p className="text-sm font-medium">
+                  {goal.status === 'pending' ? '⏳ Pending invite' : '✅ Active goal'}
+                </p>
+                <p className="text-xs text-muted-foreground capitalize">
+                  Status: {goal.status}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                {goal.status === 'pending' && isReceiver && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => setAcceptingGoalId(goal.id)} 
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      Accept
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => declineGoal.mutate(goal.id)}
+                      disabled={declineGoal.isPending}
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Decline
+                    </Button>
+                  </>
+                )}
+                {goal.status === 'accepted' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate(`/comparison/${goal.id}`)}
+                  >
+                    View Comparison
+                  </Button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Accept modal */}
+      <AcceptGoalModal
+        open={!!acceptingGoalId}
+        onClose={() => setAcceptingGoalId(null)}
+        isPending={acceptGoal.isPending}
+        onAccept={(categoryId) => {
+          if (!acceptingGoalId) return
+          acceptGoal.mutate(
+            { id: acceptingGoalId, receiverCategoryId: categoryId },
+            { onSuccess: () => setAcceptingGoalId(null) }
+          )
+        }}
+      />
+    </>
+  )
+}
+  
+
 // Main Friends Page
 const FriendsPage = () => {
   const [searchInput, setSearchInput] = useState('')
@@ -218,9 +328,7 @@ const FriendsPage = () => {
 
         <Tabs defaultValue="friends">
           <TabsList className="w-full mb-4">
-            <TabsTrigger value="friends" className="flex-1">
-              Friends
-            </TabsTrigger>
+            <TabsTrigger value="friends" className="flex-1">Friends</TabsTrigger>
             <TabsTrigger value="requests" className="flex-1">
               Requests
               {requests.length > 0 && (
@@ -229,15 +337,12 @@ const FriendsPage = () => {
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="goals" className="flex-1">Goals</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="friends">
-            <FriendsList />
-          </TabsContent>
-
-          <TabsContent value="requests">
-            <FriendRequests />
-          </TabsContent>
+          <TabsContent value="friends"><FriendsList /></TabsContent>
+          <TabsContent value="requests"><FriendRequests /></TabsContent>
+          <TabsContent value="goals"><SharedGoalsList /></TabsContent>
         </Tabs>
       </main>
     </div>

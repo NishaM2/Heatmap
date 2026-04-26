@@ -129,3 +129,23 @@ export const getDayDetail = async(userId: string, categoryId: string, date: stri
     ))
     return result[0] || null
 }
+
+export const deleteLog = async (userId: string, id: string) => {
+    const log = await db.select()
+        .from(dailyLogs)
+        .where(and(
+            eq(dailyLogs.id, id),
+            eq(dailyLogs.userId, userId)
+        ))
+
+    if (log.length === 0) {
+        const error = new Error('Log not found') as any
+        error.status = 404
+        throw error
+    }
+
+    await db.delete(dailyLogs)
+        .where(eq(dailyLogs.id, id))
+
+    return { message: 'Log deleted' }
+}

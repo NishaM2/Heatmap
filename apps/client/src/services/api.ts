@@ -1,6 +1,6 @@
 const BASE_URL = '/api'
 
-const request = async (endpoint: string, options: RequestInit = {}) => {
+export const request = async (endpoint: string, options: RequestInit = {}) => {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
         ...options,
         credentials: 'include',
@@ -118,6 +118,9 @@ export const friendApi = {
         request(`/friends/${id}`, { 
             method: 'DELETE'
         }),
+
+    getFriendLogs: (friendId: string, year: string) =>
+        request(`/logs/friend/${friendId}?year=${year}`),
 }
 
 //github
@@ -126,4 +129,26 @@ export const githubApi = {
         request('/github/sync', { 
             method: 'POST' 
         }),
+}
+
+export const sharedGoalApi = {
+  getAll: () => request('/shared-goals'),
+
+  create: (data: { initiatorCategoryId: string; receiverId: string }) =>
+    request('/shared-goals', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  accept: (id: string, receiverCategoryId: string) =>
+    request(`/shared-goals/${id}/accept`, {
+        method: 'PATCH',
+        body: JSON.stringify({ receiverCategoryId }),
+    }),
+
+  decline: (id: string) =>
+    request(`/shared-goals/${id}/decline`, { method: 'PATCH' }),
+
+  getComparison: (id: string, year: string) =>
+    request(`/shared-goals/${id}/comparison?year=${year}`),
 }

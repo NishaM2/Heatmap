@@ -33,3 +33,14 @@ export interface SearchUser {
   email: string
   image: string | null
 }
+
+export interface SharedGoal {
+  id: string
+  initiatorId: string
+  receiverId: string
+  initiatorCategoryId: string
+  receiverCategoryId: string | null
+  status: 'pending' | 'accepted' | 'declined'
+  createdAt: string
+  updatedAt: string
+}

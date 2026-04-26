@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { LayoutDashboard, Users, Settings, LogOut, Activity } from 'lucide-react'
+import NotificationBell from '@/components/NotificationBell'
 
 const Navbar = () => {
   const { user, logout } = useAuth()
@@ -61,6 +62,7 @@ const Navbar = () => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+              <NotificationBell/>
               <Avatar className="h-9 w-9">
                 <AvatarImage src={user?.image || ''} alt={user?.name} />
                 <AvatarFallback>

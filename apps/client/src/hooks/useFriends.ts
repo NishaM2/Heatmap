@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { friendApi } from '@/services/api'
+import { sharedGoalApi } from '@/services/api'
 
 export const useFriends = () => {
   return useQuery({
@@ -61,6 +62,34 @@ export const useUnfriend = () => {
     mutationFn: friendApi.unfriend,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['friends'] })
+    },
+  })
+}
+
+export const useSharedGoals = () => {
+  return useQuery({
+    queryKey: ['shared-goals'],
+    queryFn: sharedGoalApi.getAll,
+  })
+}
+
+export const useAcceptSharedGoal = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, receiverCategoryId }: { id: string; receiverCategoryId: string }) =>
+      sharedGoalApi.accept(id, receiverCategoryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shared-goals'] })
+    },
+  })
+}
+
+export const useDeclineSharedGoal = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: sharedGoalApi.decline,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shared-goals'] })
     },
   })
 }

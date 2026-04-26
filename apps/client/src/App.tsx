@@ -6,6 +6,7 @@ import RegisterPage from '@/pages/RegisterPage'
 import DashboardPage from '@/pages/DashboardPage'
 import FriendsPage from '@/pages/FriendsPage'
 import SettingsPage from '@/pages/SettingsPage'
+import ComparisonPage from '@/pages/ComparisonPage'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth()
@@ -30,6 +31,7 @@ const AppRoutes = () => {
       <Route path="/friends" element={<ProtectedRoute><FriendsPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/comparison/:goalId" element={<ProtectedRoute><ComparisonPage /></ProtectedRoute>} />
     </Routes>
   )
 }

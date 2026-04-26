@@ -30,14 +30,17 @@ const DayModal = () => {
   const [effortLevel, setEffortLevel] = useState<number | null>(null)
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   useEffect(() => {
     if (existingLog) {
       setEffortLevel(existingLog.effortLevel || null)
       setNote(existingLog.note || '')
+      setIsEditing(false)
     } else {
       setEffortLevel(null)
       setNote('')
+      setIsEditing(true)
     }
   }, [existingLog, selectedDate])
 
@@ -87,7 +90,42 @@ const DayModal = () => {
           <p className="text-sm text-muted-foreground text-center py-4">
             Cannot log future dates
           </p>
+        ) : existingLog && !isEditing ? (
+          // VIEW MODE — already filled
+          <div className="space-y-4 py-2">
+            <div>
+              <p className="text-sm font-medium mb-2">Effort Level</p>
+              <div className="grid grid-cols-4 gap-2">
+                {EFFORT_LEVELS.map(({ level, label, color }) => (
+                  <div
+                    key={level}
+                    className={`
+                      rounded-lg p-3 text-center border-2
+                      ${effortLevel === level ? 'border-primary scale-105' : 'border-transparent opacity-40'}
+                    `}
+                  >
+                    <div className={`h-6 w-full rounded ${color} mb-1`} />
+                    <span className="text-xs font-medium">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {note && (
+              <div>
+                <p className="text-sm font-medium mb-1">Note</p>
+                <p className="text-sm text-muted-foreground bg-muted rounded-lg px-3 py-2">
+                  {note}
+                </p>
+              </div>
+            )}
+
+            {!note && (
+              <p className="text-xs text-muted-foreground">No note added</p>
+            )}
+          </div>
         ) : (
+          // edit mode
           <div className="space-y-4 py-2">
             <div>
               <p className="text-sm font-medium mb-2">Effort Level</p>
@@ -130,6 +168,11 @@ const DayModal = () => {
         )}
 
         <DialogFooter>
+          {existingLog && !isEditing && !isFutureDate && (
+            <Button variant="outline" onClick={() => setIsEditing(true)}>
+              Edit
+            </Button>
+          )}
           {existingLog && !isFutureDate && (
             <Button
               variant="destructive"
@@ -144,11 +187,8 @@ const DayModal = () => {
           <Button variant="outline" onClick={closeDayModal}>
             Cancel
           </Button>
-          {!isFutureDate && (
-            <Button
-              onClick={handleSave}
-              disabled={!effortLevel || loading}
-            >
+          {(!existingLog || isEditing) && !isFutureDate && (
+            <Button onClick={handleSave} disabled={!effortLevel || loading}>
               {loading ? 'Saving...' : 'Save'}
             </Button>
           )}
