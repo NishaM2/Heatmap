@@ -15,6 +15,7 @@ import HeatmapSkeleton from '@/components/HeatmapSkeleton'
 import { useGithubSync } from '@/hooks/useGithub'
 import StreakCounter from '@/components/StreakCounter'
 import MilestoneAlert from '@/components/MilestoneAlert'
+import { Share2 } from 'lucide-react'
 
 const currentYear = new Date().getFullYear()
 
@@ -37,6 +38,25 @@ const CategoryCard = ({ category, year }: { category: Category, year: number }) 
             Core
           </span>
         )}
+        <div className="ml-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              const url = `http://localhost:3000/api/share/${category.id}?year=${year}`
+              const link = document.createElement('a')
+              link.href = url
+              link.download = `${category.name}-heatmap.png`
+              link.click()
+              const tweetText = `My ${category.name} heatmap — tracked with HeatTrack 🔥`
+              const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`
+              window.open(twitterUrl, '_blank')
+            }}
+          >
+            <Share2 className="h-4 w-4 mr-1" />
+            Share
+          </Button>
+        </div>
       </div>
 
       {stats && (

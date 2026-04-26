@@ -17,6 +17,7 @@ import sharedGoalRouter from './api/sharedGoal.routes'
 import { createServer } from 'http'
 import { initSocket } from './lib/socket'
 import rateLimit from 'express-rate-limit'
+import shareRouter from './api/share.routes'
 
 //loading environment variables
 dotenv.config()
@@ -111,6 +112,7 @@ app.use('/api/stats', statsRouter)
 app.use('/api/github', githubRouter)
 app.use('/api/friends', friendRouter)
 app.use('/api/shared-goals', sharedGoalRouter)
+app.use('/api/share', shareRouter)
 
 //error handler
 app.use((req: express.Request, res: express.Response) => {
