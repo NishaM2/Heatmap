@@ -5,6 +5,7 @@ export interface Category {
   isCore: boolean
   userId: string
   createdAt: string
+  updatedAt: string
 }
 
 export interface Friend {

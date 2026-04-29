@@ -81,6 +81,9 @@ export const logApi = {
        
     delete: (id: string) =>
         request(`/logs/${id}`, { method: 'DELETE' }),
+
+    deleteAll: () => 
+        request('/logs', { method: 'DELETE' }),
 }
 
 //stats
@@ -128,6 +131,14 @@ export const githubApi = {
     sync: () => 
         request('/github/sync', { 
             method: 'POST' 
+        }),
+
+    status: () => 
+        request('/github/status'),
+    
+    disconnect: () => 
+        request('/github/disconnect', { 
+            method: 'DELETE' 
         }),
 }
 

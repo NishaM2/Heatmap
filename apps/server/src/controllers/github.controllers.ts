@@ -52,3 +52,40 @@ export const githubSync = async (req: Request, res: Response, next: NextFunction
         next(error)
     }
 }
+
+export const getGithubStatus = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user!.id
+        const githubAccount = await db.select()
+            .from(betterAuthAccounts)
+            .where(and(
+                eq(betterAuthAccounts.userId, userId),
+                eq(betterAuthAccounts.providerId, 'github')
+            ))
+
+        if (githubAccount.length === 0) {
+            return res.status(200).json({ connected: false })
+        }
+
+        return res.status(200).json({
+            connected: true,
+            accountId: githubAccount[0].accountId,
+        })
+    } catch (error) {
+        next(error)
+    }
+}
+
+export const disconnectGithub = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user!.id
+        await db.delete(betterAuthAccounts)
+            .where(and(
+                eq(betterAuthAccounts.userId, userId),
+                eq(betterAuthAccounts.providerId, 'github')
+            ))
+        return res.status(200).json({ message: 'GitHub disconnected' })
+    } catch (error) {
+        next(error)
+    }
+}

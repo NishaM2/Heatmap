@@ -149,3 +149,8 @@ export const deleteLog = async (userId: string, id: string) => {
 
     return { message: 'Log deleted' }
 }
+
+export const deleteAllLogs = async (userId: string) => {
+  await db.delete(dailyLogs).where(eq(dailyLogs.userId, userId))
+  return { message: 'All logs deleted' }
+}

@@ -57,3 +57,13 @@ export const deleteLog = async (req: Request, res: Response, next: NextFunction)
         next(error)
     }
 }
+
+export const deleteAllLogs = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id
+    await logService.deleteAllLogs(userId)
+    return res.status(200).json({ message: 'All logs deleted' })
+  } catch (error) {
+    next(error)
+  }
+}
