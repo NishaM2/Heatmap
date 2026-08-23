@@ -2,11 +2,29 @@ import { eq, and, gte, lte, inArray } from 'drizzle-orm'
 import { db } from '../db'
 import { categories, dailyLogs } from '../db/schema'
 
+//a log may only ever be written into a category the user owns
+const assertCategoryOwnership = async (userId: string, categoryId: string) => {
+    const owned = await db.select({ id: categories.id })
+        .from(categories)
+        .where(and(
+            eq(categories.id, categoryId),
+            eq(categories.userId, userId)
+        ))
+
+    if (owned.length === 0) {
+        const error = new Error('Category not found or does not belong to you') as any
+        error.status = 403
+        throw error
+    }
+}
+
 export const upsertLog = async (userId: string, categoryId: string, date: string, effortLevel: number, note: string, source: 'manual' | 'github' | 'fitbit' = 'manual') => {
+    await assertCategoryOwnership(userId, categoryId)
+
     const newlog = await db.insert(dailyLogs)
         .values({ date, effortLevel, note, categoryId, userId, source })
         .onConflictDoUpdate({
-            target: [dailyLogs.date, dailyLogs.categoryId],
+            target: [dailyLogs.userId, dailyLogs.categoryId, dailyLogs.date],
             set: { effortLevel, note, updatedAt: new Date() }
         })
         .returning()

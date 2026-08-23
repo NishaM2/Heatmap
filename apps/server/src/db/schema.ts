@@ -59,8 +59,9 @@ export const dailyLogs = pgTable('dailylogs', {
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
-    uniqueDateCategory: uniqueIndex('unique_date_category')
-        .on(table.date, table.categoryId),
+    // Scoped by user so an upsert can never conflict with another user's row
+    uniqueUserCategoryDate: uniqueIndex('unique_user_category_date')
+        .on(table.userId, table.categoryId, table.date),
 }))
 
 //friendships
