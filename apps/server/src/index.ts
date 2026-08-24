@@ -18,6 +18,7 @@ import { createServer } from 'http'
 import { initSocket } from './lib/socket'
 import rateLimit from 'express-rate-limit'
 import shareRouter from './api/share.routes'
+import { CLIENT_URL, SERVER_URL } from './lib/config'
 
 //loading environment variables
 dotenv.config()
@@ -25,13 +26,14 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3000
 
+const wsOrigin = SERVER_URL.replace(/^http/, 'ws')
 // It secures HTTP headers automatically and prevents from attacks
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'", "'unsafe-inline'"],
-            connectSrc: ["'self'", "ws://localhost:3000"]
+            connectSrc: ["'self'", SERVER_URL, wsOrigin]
         }
     }
 }))
@@ -87,7 +89,7 @@ app.get('/api/auth/signin/github', async (req, res) => {
     const result = await auth.api.signInSocial({
       body: {
         provider: 'github' as const,
-        callbackURL: 'http://localhost:5173/dashboard'
+        callbackURL: `${CLIENT_URL}/dashboard`
       },
       asResponse: true
     });

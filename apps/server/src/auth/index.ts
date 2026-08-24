@@ -1,9 +1,14 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { db } from '../db'
-import * as schema from '../db/schema'
+import * as schema from '../db/schema' 
+
+const clientURL = process.env.CLIENT_URL || 'http://localhost:5173'
 
 export const auth = betterAuth({
+    baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+    secret: process.env.BETTER_AUTH_SECRET!,
+
     database: drizzleAdapter(db, {
         provider: 'pg',
         schema: {
@@ -16,6 +21,13 @@ export const auth = betterAuth({
 
     emailAndPassword: {
         enabled: true,
+        // requireEmailVerification: true,
+    },
+
+    emailVerification: {
+        sendOnSignUp: true,
+        autoSignInAfterVerification: true,
+        expiresIn: 3600,
     },
 
     socialProviders: {
@@ -26,16 +38,22 @@ export const auth = betterAuth({
         },
     },
 
+    account: {
+        encryptOAuthTokens: true,
+        accountLinking: {
+            enabled: true,
+            trustedProviders: ['github'],
+            allowDifferentEmails: false,
+            // Strongest option — see note below before enabling
+            // disableImplicitLinking: true,
+        },
+    },
+
     trustedOrigins: [
         'http://localhost:5173',
         'http://localhost:3000',
-        'http://127.0.0.1:5173',
-        'http://127.0.0.1:3000',
-    ],
-
-    advanced: {
-        disableCSRFCheck: true,
-    },
+        process.env.CLIENT_URL!,   // production origin
+    ].filter(Boolean),
 })
 
 export type Auth = typeof auth

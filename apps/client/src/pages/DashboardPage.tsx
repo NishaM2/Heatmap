@@ -16,6 +16,7 @@ import { useGithubSync } from '@/hooks/useGithub'
 import StreakCounter from '@/components/StreakCounter'
 import MilestoneAlert from '@/components/MilestoneAlert'
 import { Share2 } from 'lucide-react'
+import { API_URL } from '@/lib/config'
 
 const currentYear = new Date().getFullYear()
 
@@ -43,14 +44,32 @@ const CategoryCard = ({ category, year }: { category: Category, year: number }) 
             variant="ghost"
             size="sm"
             onClick={async () => {
-              const url = `http://localhost:3000/api/share/${category.id}?year=${year}`
-              const link = document.createElement('a')
-              link.href = url
-              link.download = `${category.name}-heatmap.png`
-              link.click()
-              const tweetText = `My ${category.name} heatmap — tracked with HeatTrack 🔥`
-              const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`
-              window.open(twitterUrl, '_blank')
+              try {
+                const res = await fetch(`${API_URL}/api/share/${category.id}?year=${year}`, {
+                  credentials: 'include',
+                })
+                if (!res.ok) throw new Error(`Share failed: ${res.status}`)
+
+                const blob = await res.blob()
+                const objectUrl = URL.createObjectURL(blob)
+
+                const link = document.createElement('a')
+                link.href = objectUrl
+                link.download = `${category.name}-heatmap.png`
+                document.body.appendChild(link)
+                link.click()
+                link.remove()
+                URL.revokeObjectURL(objectUrl)
+
+                const tweetText = `My ${category.name} heatmap — tracked with HeatTrack 🔥`
+                window.open(
+                  `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`,
+                  '_blank',
+                  'noopener,noreferrer'
+                )
+              } catch (err) {
+                console.error(err)
+              }
             }}
           >
             <Share2 className="h-4 w-4 mr-1" />

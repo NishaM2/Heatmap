@@ -1,4 +1,6 @@
-const BASE_URL = '/api'
+import { API_URL } from "@/lib/config"
+
+const BASE_URL = `${API_URL}/api`
 
 export const request = async (endpoint: string, options: RequestInit = {}) => {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
@@ -7,7 +9,6 @@ export const request = async (endpoint: string, options: RequestInit = {}) => {
         //Better Auth session cookie gets sent automatically
         headers: {
             'Content-Type': 'application/json',
-            'Origin': window.location.origin,
             ...options.headers,
         },
     })

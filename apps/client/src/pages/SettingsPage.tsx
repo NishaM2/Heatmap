@@ -10,6 +10,7 @@ import type { Category } from '@/types'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { logApi } from '@/services/api'
 import { githubApi } from '@/services/api'
+import { authClient } from '@/lib/authClient'
 
 const SettingsPage = () => {
   const { user } = useAuth()
@@ -58,6 +59,13 @@ const SettingsPage = () => {
       queryClient.invalidateQueries({ queryKey: ['github', 'status'] })
     },
   })
+
+  const handleGitHub = async () => {
+    await authClient.signIn.social({
+      provider: 'github',
+      callbackURL: '/dashboard',
+    })
+  }
 
   const isGithubConnected = githubStatus?.connected === true
 
@@ -119,14 +127,13 @@ const SettingsPage = () => {
                 </Button>
               </div>
             ) : (
-              <Button
-                size="sm"
-                onClick={() => {
-                  window.location.href = 'http://localhost:3000/api/auth/signin/github'
-                }}
+              <button
+                type="button"
+                onClick={handleGitHub}
+                className="w-full"
               >
-                Connect GitHub
-              </Button>
+                Continue with GitHub
+              </button>
             )}
           </div>
         </section>

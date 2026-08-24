@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { authClient } from '@/lib/authClient'
 
 const RegisterPage = () => {
   const [name, setName] = useState('')
@@ -29,6 +30,13 @@ const RegisterPage = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleGitHub = async () => {
+    await authClient.signIn.social({
+      provider: 'github',
+      callbackURL: '/dashboard',
+    })
   }
 
   return (
@@ -88,14 +96,9 @@ const RegisterPage = () => {
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <a
-            href="http://localhost:3000/api/auth/signin/github"
-            className="w-full"
-          >
-            <Button variant="outline" className="w-full flex items-center gap-2">
+            <Button variant="outline" onClick={handleGitHub} className="w-full flex items-center gap-2">
               Continue with GitHub
             </Button>
-          </a>
 
         </CardContent>
         

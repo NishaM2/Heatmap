@@ -24,7 +24,6 @@ const FriendCard = ({ friend, onUnfriend }: FriendCardProps) => {
         </Avatar>
         <div>
           <p className="font-medium text-sm">{friend.user?.name}</p>
-          <p className="text-xs text-muted-foreground">{friend.user?.email}</p>
           <div className="flex items-center gap-1 mt-0.5">
             <Flame className="h-3 w-3 text-orange-500" />
             <span className="text-xs text-muted-foreground">

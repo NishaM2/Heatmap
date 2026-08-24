@@ -1,5 +1,13 @@
 import { Server } from 'socket.io'
 import { Server as HttpServer } from 'http'
+import { auth } from '../auth/index'
+
+declare module 'socket.io' {
+    interface SocketData {
+        userId: string
+        sessionId: string
+    }
+}
 
 let io: Server
 
@@ -11,18 +19,33 @@ export const initSocket = (httpServer: HttpServer) => {
         }
     })
 
-    io.on('connection', (socket) => {
-        console.log('Client connected:', socket.id)
+    io.use(async (socket, next) => {
+        try {
+            const cookie = socket.handshake.headers.cookie
+            if (!cookie) return next(new Error('unauthorized'))
 
-        socket.on('join', (userId: string) => {
-            socket.join(userId)
-            console.log(`User ${userId} joined their room`)
-        })
+            const session = await auth.api.getSession({
+                headers: new Headers({ cookie })
+            })
+
+            if (!session?.user) return next(new Error('unauthorized'))
+
+            socket.data.userId = session.user.id
+            socket.data.sessionId = session.session.id
+            return next()
+        } catch {
+            return next(new Error('unauthorized'))
+        }
+    })
+
+    io.on('connection', (socket) => {
+        socket.join(socket.data.userId)
 
         socket.on('disconnect', () => {
-            console.log('Client disconnected:', socket.id)
+            
         })
     })
+
     return io
 }
 

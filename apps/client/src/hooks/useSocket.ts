@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
+import { SOCKET_URL } from '@/lib/config'
 
 type NotificationData = {
   type: string
@@ -22,7 +23,7 @@ export const useSocket = (onNotification: (data: NotificationData ) => void) => 
   useEffect(() => {
     if (!user) return
 
-    const socket = io('http://localhost:3000', {
+    const socket = io(SOCKET_URL, {
       withCredentials: true,
     })
 

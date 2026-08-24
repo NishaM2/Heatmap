@@ -1,8 +1,17 @@
-import { eq, and, or, like, ne } from 'drizzle-orm'
+import { eq, and, or, ne, sql, inArray } from 'drizzle-orm'
 import { db } from '../db'
 import { friendships, betterAuthUsers, dailyLogs } from '../db/schema'
 import { calculateCurrentStreak } from './streak.service'
 import { sendNotification } from '../lib/socket'
+
+const publicUserColumns = {
+    id: betterAuthUsers.id,
+    name: betterAuthUsers.name,
+    image: betterAuthUsers.image,
+} as const
+
+const escapeLike = (input: string) =>
+    input.replace(/[\\%_]/g, (ch) => `\\${ch}`)
 
 export const getFriendsWithStats = async (userId: string) => {
     const acceptedFriendships = await db.select()
@@ -17,37 +26,46 @@ export const getFriendsWithStats = async (userId: string) => {
 
     if (acceptedFriendships.length === 0) return []
 
-    //for each friendship get friend details and streak
-    const friendsWithStats = await Promise.all(
-        acceptedFriendships.map(async (friendship) => {
-
-            //get the OTHER user's ID
-            const friendId = friendship.requesterId === userId
-                ? friendship.receiverId
-                : friendship.requesterId
-
-            //fetch friend's user details
-            const friendUser = await db.select()
-                .from(betterAuthUsers)
-                .where(eq(betterAuthUsers.id, friendId))
-
-            //fetch friend's logs for streak calculation
-            const logs = await db.select({ date: dailyLogs.date })
-                .from(dailyLogs)
-                .where(eq(dailyLogs.userId, friendId))
-
-            const dates = logs.map(l => l.date)
-            const currentStreak = calculateCurrentStreak(dates)
-
-            //return combined data
-            return {
-                friendshipId: friendship.id,
-                user: friendUser[0],
-                currentStreak
-            }
-        })
+    const friendIds = acceptedFriendships.map(f =>
+        f.requesterId === userId ? f.receiverId : f.requesterId
     )
-    return friendsWithStats
+
+    // one query for all friends
+    const friendUsers = await db.select(publicUserColumns)
+        .from(betterAuthUsers)
+        .where(inArray(betterAuthUsers.id, friendIds))
+
+    const usersById = new Map(friendUsers.map(u => [u.id, u]))
+
+    // one query for all logs
+    const logs = await db.select({
+            userId: dailyLogs.userId,
+            date: dailyLogs.date,
+        })
+        .from(dailyLogs)
+        .where(inArray(dailyLogs.userId, friendIds))
+
+    const datesByUser = new Map<string, string[]>()
+    for (const log of logs) {
+        const existing = datesByUser.get(log.userId)
+        if (existing) existing.push(log.date)
+        else datesByUser.set(log.userId, [log.date])
+    }
+
+    return acceptedFriendships.flatMap((friendship) => {
+        const friendId = friendship.requesterId === userId
+            ? friendship.receiverId
+            : friendship.requesterId
+
+        const user = usersById.get(friendId)
+        if (!user) return []   // deleted user — skip rather than emit undefined
+
+        return [{
+            friendshipId: friendship.id,
+            user,
+            currentStreak: calculateCurrentStreak(datesByUser.get(friendId) ?? []),
+        }]
+    })
 }
 
 export const getPendingRequests = async (userId: string) => {
@@ -61,13 +79,18 @@ export const getPendingRequests = async (userId: string) => {
 }
 
 export const searchUsers = async (userId: string, username: string) => {
-    const search = await db.select()
+    const query = username.trim()
+    if (query.length < 3) return []
+
+    const pattern = `%${escapeLike(query)}%`
+
+    return db.select(publicUserColumns)
         .from(betterAuthUsers)
         .where(and(
-            like(betterAuthUsers.name, `%${username}%`),
+            sql`${betterAuthUsers.name} ILIKE ${pattern} ESCAPE '\\'`,
             ne(betterAuthUsers.id, userId)
         ))
-    return search
+        .limit(20)
 }
 
 export const sendRequest = async (userId: string, receiverId: string,) => {

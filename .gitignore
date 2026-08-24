@@ -18,6 +18,7 @@ build/
 # Drizzle
 drizzle/
 *.sql
+!apps/server/src/db/migrations/*.sql
 
 # Logs
 logs/

@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, inArray } from 'drizzle-orm'
+import { eq, and, gte, lte, inArray, sql } from 'drizzle-orm'
 import { db } from '../db'
 import { categories, dailyLogs } from '../db/schema'
 
@@ -22,10 +22,11 @@ export const upsertLog = async (userId: string, categoryId: string, date: string
     await assertCategoryOwnership(userId, categoryId)
 
     const newlog = await db.insert(dailyLogs)
-        .values({ date, effortLevel, note, categoryId, userId, source })
+        .values({ date, effortLevel, note, categoryId, userId, source: 'github' })
         .onConflictDoUpdate({
             target: [dailyLogs.userId, dailyLogs.categoryId, dailyLogs.date],
-            set: { effortLevel, note, updatedAt: new Date() }
+            set: { effortLevel, note, source: 'github', updatedAt: new Date() },
+            setWhere: sql`${dailyLogs.source} <> 'manual'`,
         })
         .returning()
     return newlog[0]

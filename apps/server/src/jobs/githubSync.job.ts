@@ -1,37 +1,61 @@
 import cron from 'node-cron'
 import { db } from '../db'
 import { betterAuthAccounts, categories } from '../db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, and, isNotNull } from 'drizzle-orm'
 import { syncUserGitHub } from '../services/github.service'
 
-export const startGitHubSyncJob = () => {
-    cron.schedule('0 0 * * *', async () => {
-        console.log('GitHub sync started:', new Date().toISOString())
+const runGitHubSync = async () => {
+    console.log('GitHub sync started:', new Date().toISOString())
+
+    let githubAccounts
+    try {
+        githubAccounts = await db.select()
+            .from(betterAuthAccounts)
+            .where(and(
+                eq(betterAuthAccounts.providerId, 'github'),
+                isNotNull(betterAuthAccounts.accessToken)
+            ))
+    } catch (error) {
+        console.error('GitHub sync: could not load accounts', error)
+        return
+    }
+
+    let synced = 0
+    let skipped = 0
+    let failed = 0
+
+    for (const account of githubAccounts) {
         try {
-            const githubAccounts = await db.select()
-                .from(betterAuthAccounts)
-                .where(eq(betterAuthAccounts.providerId, 'github'))
+            if (!account.accessToken) { skipped++; continue }
 
-            for (const account of githubAccounts) {
-                const userCategories = await db.select()
-                    .from(categories)
-                    .where(eq(categories.userId, account.userId))
+            const userCategories = await db.select()
+                .from(categories)
+                .where(eq(categories.userId, account.userId))
 
-                const codingCategory = userCategories.find(cat => 
-                    cat.name.toLowerCase() === 'coding'
-                )
-                if (!codingCategory) continue
+            const codingCategory = userCategories.find(
+                cat => cat.name.toLowerCase() === 'coding'
+            )
+            if (!codingCategory) { skipped++; continue }
 
-                await syncUserGitHub(
-                    account.userId,
-                    account.accountId,  
-                    account.accessToken!,  
-                    codingCategory.id
-                )
-            }
+            await syncUserGitHub(
+                account.userId,
+                account.accountId,
+                account.accessToken,
+                codingCategory.id
+            )
+            synced++
         } catch (error) {
-            console.error('GitHub sync failed:', error)
+            failed++
+            console.error(`GitHub sync failed for user ${account.userId}:`, error)
         }
-    })
+    }
+
+    console.log(
+        `GitHub sync finished: ${synced} synced, ${skipped} skipped, ${failed} failed`
+    )
+}
+
+export const startGitHubSyncJob = () => {
+    cron.schedule('0 0 * * *', () => { void runGitHubSync() })
     console.log('GitHub sync cron job scheduled')
 }
