@@ -94,6 +94,23 @@ export const searchUsers = async (userId: string, username: string) => {
 }
 
 export const sendRequest = async (userId: string, receiverId: string,) => {
+    if (userId === receiverId) {
+        const error = new Error('You cannot send a friend request to yourself') as any
+        error.status = 400
+        throw error
+    }
+
+    // Without this the insert trips a foreign key violation and surfaces as a 500
+    const receiver = await db.select({ id: betterAuthUsers.id })
+        .from(betterAuthUsers)
+        .where(eq(betterAuthUsers.id, receiverId))
+
+    if (receiver.length === 0) {
+        const error = new Error('User not found') as any
+        error.status = 404
+        throw error
+    }
+
     const exist = await db.select()
         .from(friendships)
         .where(
@@ -108,10 +125,39 @@ export const sendRequest = async (userId: string, receiverId: string,) => {
                 )
             )
         )
-    if(exist.length > 0) {
-        const error = new Error('Already friends or request pending') as any
-        error.status = 400
-        throw error
+
+    const existing = exist[0]
+
+    if (existing) {
+        if (existing.status === 'accepted') {
+            const error = new Error('Already friends') as any
+            error.status = 400
+            throw error
+        }
+
+        if (existing.status === 'pending') {
+            const error = new Error('A request is already pending') as any
+            error.status = 400
+            throw error
+        }
+
+        // Declined. Reopen the row under whoever is asking now — otherwise a single
+        // decline leaves the pair permanently unable to reconnect.
+        const revived = await db.update(friendships)
+            .set({
+                requesterId: userId,
+                receiverId,
+                status: 'pending',
+                updatedAt: new Date(),
+            })
+            .where(eq(friendships.id, existing.id))
+            .returning()
+
+        sendNotification(receiverId, 'friend_request', `You have a new friend request`, {
+            friendshipId: revived[0].id,
+            requesterId: userId
+        })
+        return revived
     }
 
     const newfriendship = await db.insert(friendships)
@@ -146,8 +192,14 @@ export const acceptRequest = async (userId: string, friendshipId: string) => {
         throw error
     }
 
+    if (request[0].status !== 'pending') {
+        const error = new Error('This request is no longer pending') as any
+        error.status = 400
+        throw error
+    }
+
     const updated = await db.update(friendships)
-        .set({ status: 'accepted'})
+        .set({ status: 'accepted', updatedAt: new Date() })
         .where(eq(friendships.id, friendshipId))
         .returning()
 
@@ -174,8 +226,14 @@ export const declineRequest = async (userId: string, friendshipId: string) => {
         throw error
     }
 
+    if (request[0].status !== 'pending') {
+        const error = new Error('This request is no longer pending') as any
+        error.status = 400
+        throw error
+    }
+
     const updated = await db.update(friendships)
-        .set({ status: 'declined'})
+        .set({ status: 'declined', updatedAt: new Date() })
         .where(eq(friendships.id, friendshipId))
         .returning()
     return updated[0]

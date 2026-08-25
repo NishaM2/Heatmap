@@ -2,6 +2,20 @@ import { API_URL } from "@/lib/config"
 
 const BASE_URL = `${API_URL}/api`
 
+// Not every response is JSON: a proxy 502 returns HTML, a 204 returns nothing.
+// Blindly calling response.json() turns those into "Unexpected token '<'", which
+// is what the user ends up seeing instead of the real error.
+const parseBody = async (response: Response) => {
+    if (response.status === 204) return null
+    const text = await response.text()
+    if (!text) return null
+    try {
+        return JSON.parse(text)
+    } catch {
+        return null
+    }
+}
+
 export const request = async (endpoint: string, options: RequestInit = {}) => {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
         ...options,
@@ -14,10 +28,12 @@ export const request = async (endpoint: string, options: RequestInit = {}) => {
     })
 
     if(!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Something went wrong')
+        const body = await parseBody(response)
+        throw new Error(
+            body?.message || `Request failed (${response.status} ${response.statusText})`.trim()
+        )
     }
-    return response.json()
+    return parseBody(response)
 }
 
 //auth

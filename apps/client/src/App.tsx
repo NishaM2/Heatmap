@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
 import { AuthProvider } from '@/context/AuthProvider'
 import { useAuth } from './hooks/useAuth'
 import LoginPage from '@/pages/LoginPage'
@@ -23,6 +23,20 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>
 }
 
+// Without this, an unknown path matched no route and rendered a blank page.
+const NotFound = () => (
+  <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-4 text-center">
+    <p className="text-5xl">🔥</p>
+    <h1 className="text-2xl font-bold">Page not found</h1>
+    <p className="text-muted-foreground text-sm">
+      That page doesn't exist — it may have moved.
+    </p>
+    <Link to="/" className="text-primary hover:underline text-sm mt-2">
+      Back to home
+    </Link>
+  </div>
+)
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -33,6 +47,7 @@ const AppRoutes = () => {
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/comparison/:goalId" element={<ProtectedRoute><ComparisonPage /></ProtectedRoute>} />
       <Route path="/" element={<LandingPage />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   )
 }

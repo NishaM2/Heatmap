@@ -1,6 +1,7 @@
 import { eq, and, gte, lte, inArray, sql } from 'drizzle-orm'
 import { db } from '../db'
 import { categories, dailyLogs } from '../db/schema'
+import { yearDates, yearStart, yearEnd } from '../lib/dates'
 
 //a log may only ever be written into a category the user owns
 const assertCategoryOwnership = async (userId: string, categoryId: string) => {
@@ -22,17 +23,27 @@ export const upsertLog = async (userId: string, categoryId: string, date: string
     await assertCategoryOwnership(userId, categoryId)
 
     const newlog = await db.insert(dailyLogs)
-        .values({ date, effortLevel, note, categoryId, userId, source: 'github' })
+        .values({ date, effortLevel, note, categoryId, userId, source })
         .onConflictDoUpdate({
             target: [dailyLogs.userId, dailyLogs.categoryId, dailyLogs.date],
-            set: { effortLevel, note, source: 'github', updatedAt: new Date() },
-            setWhere: sql`${dailyLogs.source} <> 'manual'`,
+            set: { effortLevel, note, source, updatedAt: new Date() },
+            // An automated sync must never clobber something the user wrote by hand.
+            // A manual edit carries no guard, so the user always wins over their own row.
+            setWhere: source === 'manual'
+                ? undefined
+                : sql`${dailyLogs.source} <> 'manual'`,
         })
         .returning()
-    return newlog[0]
+
+    // When the guard above skips the update, Postgres returns no row.
+    // Report what is actually stored rather than undefined.
+    return newlog[0] ?? await getDayDetail(userId, categoryId, date)
 }
 
 export const getOverallLogs = async (userId: string, year: string) => {
+    const y = parseInt(year, 10)
+    if (Number.isNaN(y)) throw new Error(`Invalid year: ${year}`)
+
     //fetch core categories
     const coreCategories = await db.select().from(categories)
         .where(and(
@@ -54,8 +65,8 @@ export const getOverallLogs = async (userId: string, year: string) => {
     .where(and(
         eq(dailyLogs.userId, userId),
         inArray(dailyLogs.categoryId, categoryIds),
-        gte(dailyLogs.date, `${year}-01-01`),
-        lte(dailyLogs.date, `${year}-12-31`)
+        gte(dailyLogs.date, yearStart(y)),
+        lte(dailyLogs.date, yearEnd(y))
     ))
 
     //group logs by date
@@ -68,18 +79,12 @@ export const getOverallLogs = async (userId: string, year: string) => {
         logsByDate[log.date].push(log.categoryId)
     }
 
-    //generate all 365 dates for the year
-    const result = []
-    const totalDays = isLeapYear(parseInt(year)) ? 366 : 365
-    for (let i = 0; i < totalDays; i++) {
-        const date = new Date(parseInt(year), 0, 1)
-        date.setDate(date.getDate() + i)
-        const dateString = date.toISOString().split('T')[0]
-        // "2025-01-01" format
+    //build the calendar from date parts — deriving it from a local Date and then
+    //reading it back as UTC shifts the whole year by a day east of UTC
+    const totalCore = coreCategories.length
 
-        const loggedCategories = logsByDate[dateString] || []
-        const loggedCount = loggedCategories.length
-        const totalCore = coreCategories.length
+    return yearDates(y).map(date => {
+        const loggedCount = logsByDate[date]?.length ?? 0
 
         let score = 0
         if (loggedCount === totalCore) {
@@ -88,21 +93,14 @@ export const getOverallLogs = async (userId: string, year: string) => {
             score = 1  // some completed
         }
 
-        result.push({
-            date: dateString,
-            score,
-            loggedCount,
-            totalCore
-        })
-    }
-    return result
-}
-
-const isLeapYear = (year: number): boolean => {
-    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
+        return { date, score, loggedCount, totalCore }
+    })
 }
 
 export const getLogsForYear = async(userId: string, categoryId: string, year: string) => {
+    const y = parseInt(year, 10)
+    if (Number.isNaN(y)) throw new Error(`Invalid year: ${year}`)
+
     const activeLogs = await db.select({
         date: dailyLogs.date,
         effortLevel: dailyLogs.effortLevel
@@ -111,8 +109,8 @@ export const getLogsForYear = async(userId: string, categoryId: string, year: st
     .where(and(
         eq(dailyLogs.userId, userId),
         eq(dailyLogs.categoryId, categoryId),
-        gte(dailyLogs.date, `${year}-01-01`),
-        lte(dailyLogs.date, `${year}-12-31`)
+        gte(dailyLogs.date, yearStart(y)),
+        lte(dailyLogs.date, yearEnd(y))
     ))
     // Map active logs by date for easy lookup
     const logMap: Record<string, number> = {}
@@ -120,22 +118,10 @@ export const getLogsForYear = async(userId: string, categoryId: string, year: st
         logMap[log.date] = log.effortLevel
     }
 
-    // Generate full 365-day array
-    const totalDays = isLeapYear(parseInt(year)) ? 366 : 365
-    const result = []
-
-    for (let i = 0; i < totalDays; i++) {
-        const date = new Date(parseInt(year), 0, 1)
-        date.setDate(date.getDate() + i)
-        const dateString = date.toISOString().split('T')[0]
-        
-        result.push({
-            date: dateString,
-            effortLevel: logMap[dateString] || null
-            // null means no log for that day
-        })  
-    }
-    return result
+    return yearDates(y).map(date => ({
+        date,
+        effortLevel: logMap[date] ?? null
+    }))
 }
 
 export const getDayDetail = async(userId: string, categoryId: string, date: string) => {

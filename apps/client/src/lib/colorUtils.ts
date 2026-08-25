@@ -4,8 +4,6 @@ export const getEffortColor = (
 ): string => {
   if (!effortLevel) return 'bg-muted hover:bg-muted/80'
 
-  // Map hex color to tailwind shades
-  // We use opacity to create intensity levels
   switch (effortLevel) {
     case 1: return 'opacity-25'
     case 2: return 'opacity-50'

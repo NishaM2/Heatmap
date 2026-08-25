@@ -1,12 +1,22 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { db } from '../db'
-import * as schema from '../db/schema' 
+import * as schema from '../db/schema'
+import { sendVerificationEmail } from '../lib/email'
 
 const clientURL = process.env.CLIENT_URL || 'http://localhost:5173'
+const serverURL = process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+
+const isLoopback = (host: string) =>
+    host === 'localhost' || host === '127.0.0.1' || host.endsWith('.localhost')
+
+const clientHost = new URL(clientURL).hostname
+const serverHost = new URL(serverURL).hostname
+const isCrossSite =
+    !isLoopback(clientHost) && !isLoopback(serverHost) && clientHost !== serverHost
 
 export const auth = betterAuth({
-    baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+    baseURL: serverURL,
     secret: process.env.BETTER_AUTH_SECRET!,
 
     database: drizzleAdapter(db, {
@@ -21,13 +31,13 @@ export const auth = betterAuth({
 
     emailAndPassword: {
         enabled: true,
-        // requireEmailVerification: true,
     },
 
     emailVerification: {
         sendOnSignUp: true,
         autoSignInAfterVerification: true,
         expiresIn: 3600,
+        sendVerificationEmail,
     },
 
     socialProviders: {
@@ -43,10 +53,14 @@ export const auth = betterAuth({
         accountLinking: {
             enabled: true,
             trustedProviders: ['github'],
-            allowDifferentEmails: false,
-            // Strongest option — see note below before enabling
-            // disableImplicitLinking: true,
+            allowDifferentEmails: false
         },
+    },
+
+    advanced: {
+        ...(isCrossSite
+            ? { defaultCookieAttributes: { sameSite: 'none' as const, secure: true } }
+            : {}),
     },
 
     trustedOrigins: [

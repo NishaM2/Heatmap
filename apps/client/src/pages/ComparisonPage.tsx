@@ -5,6 +5,7 @@ import { useUIStore } from '@/store/uiStore'
 import { useQuery } from '@tanstack/react-query'
 import { request } from '@/services/api'
 import { useAuth } from '@/hooks/useAuth'
+import DayModal from '@/components/DayModal'
 
 const ComparisonPage = () => {
   const { goalId } = useParams()
@@ -77,6 +78,7 @@ const ComparisonPage = () => {
           />
         </div>
       </main>
+      <DayModal />
     </div>
   )
 }

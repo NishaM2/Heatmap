@@ -80,7 +80,10 @@ export const useUpsertLog = () => {
 
     onSettled: (_data, _err, variables) => {
       const year = variables.date.substring(0, 4)
-      queryClient.invalidateQueries({ queryKey: ['logs', variables.categoryId, year] })
+      // Invalidate on the category prefix, not the year. The day-detail query is
+      // keyed ['logs', categoryId, '2025-03-08'], which a ['logs', categoryId, '2025']
+      // key does not prefix-match — so the modal used to reopen with the stale note.
+      queryClient.invalidateQueries({ queryKey: ['logs', variables.categoryId] })
       queryClient.invalidateQueries({ queryKey: ['logs', 'overall', year] })
     },
   })

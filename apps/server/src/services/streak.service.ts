@@ -1,62 +1,50 @@
+const startOfLocalDay = (value: string): number => {
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? new Date(`${value}T00:00:00`)
+    : new Date(value)
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
 export const calculateCurrentStreak = (dates: string[]): number => {
-    //if no dates, streak is 0
-    if(dates.length === 0) return 0
+  if (dates.length === 0) return 0
 
-    // 'b'.localeCompare(a) = descending order for strings
-    const sorted = [...dates].sort((a,b) => b.localeCompare(a))
+  const days = [...new Set(dates.map(startOfLocalDay))].sort((a, b) => b - a)
 
-    //start counting from today
-    let streak = 0
-    const today = new Date()
-    today.setHours(0,0,0,0)
-    //remove time part so we only compare dates
+  const cursor = new Date()
+  cursor.setHours(0, 0, 0, 0)
 
-    //loop through sorted dates
-    for (let i = 0; i < sorted.length; i++) {
-        const logDate = new Date(sorted[i])
-        logDate.setHours(0,0,0,0)
-        const expectedDate = new Date(today)
-        expectedDate.setDate(today.getDate() - i)
-        // i=0 today, i=1 yesterday, i=2 day before
+  // streak survives until end of today: if nothing logged yet today,
+  // anchor on yesterday instead
+  if (days[0] !== cursor.getTime()) {
+    cursor.setDate(cursor.getDate() - 1)
+    if (days[0] !== cursor.getTime()) return 0
+  }
 
-        // if log date matches expected date → consecutive
-        if (logDate.getTime() === expectedDate.getTime()) {
-            streak++
-        } else {
-            // gap found stop counting
-            break
-        }
-    }
-    return streak
+  let streak = 0
+  for (const day of days) {
+    if (day !== cursor.getTime()) break
+    streak++
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  return streak
 }
 
 export const calculateLongestStreak = (dates: string[]): number => {
-    if (dates.length === 0) return 0
+  if (dates.length === 0) return 0
 
-    //sort oldest first for this one
-    const sorted = [...dates].sort((a, b) => a.localeCompare(b))
+  const days = [...new Set(dates.map(startOfLocalDay))].sort((a, b) => a - b)
 
-    let longest = 1
-    let current = 1
-
-    for (let i = 1; i < sorted.length; i++) {
-        const prev = new Date(sorted[i - 1])
-        const curr = new Date(sorted[i])
-
-        //difference in days between consecutive entries
-        const diffTime = curr.getTime() - prev.getTime()
-        const diffDays = diffTime / (1000 * 60 * 60 * 24)
-
-        if (diffDays === 1) {
-            //consecutive day extend current streak
-            current++
-            longest = Math.max(longest, current)
-        } else {
-            //gap found reset current streak
-            current = 1
-        }
-    }
-    return longest
+  let longest = 1
+  let run = 1
+  for (let i = 1; i < days.length; i++) {
+    const next = new Date(days[i - 1])
+    next.setDate(next.getDate() + 1)
+    if (next.getTime() === days[i]) run++
+    else run = 1
+    if (run > longest) longest = run
+  }
+  return longest
 }
 
 export const totalActiveDays = (dates: string[]): number => {

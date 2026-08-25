@@ -1,14 +1,10 @@
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
-import dotenv from 'dotenv'
 import * as schema from './schema'
 
-dotenv.config()
 
-// A pool maintains multiple database connections open and ready
-// When an app starts pool opens 10 connections and keep them alive.
-// Request arrives it grabs idle connection instantly 
-// Run Query return connection to pool for the next request
+// A pool maintains multiple database connections open and ready When an app starts pool opens 10 connections and keep them alive.
+// Request arrives it grabs idle connection instantly Run Query return connection to pool for the next request
 // 100 simultaneous requests share 10 connections instead of trying to open 100 new connections simultaneously
 
 const pool = new Pool({

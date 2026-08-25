@@ -17,6 +17,7 @@ import StreakCounter from '@/components/StreakCounter'
 import MilestoneAlert from '@/components/MilestoneAlert'
 import { Share2 } from 'lucide-react'
 import { API_URL } from '@/lib/config'
+import { toast } from 'sonner'
 
 const currentYear = new Date().getFullYear()
 
@@ -44,6 +45,15 @@ const CategoryCard = ({ category, year }: { category: Category, year: number }) 
             variant="ghost"
             size="sm"
             onClick={async () => {
+              // Open the intent window synchronously. Once an await breaks the
+              // user-activation chain, popup blockers reject window.open().
+              const tweetText = `My ${category.name} heatmap — tracked with HeatTrack 🔥`
+              window.open(
+                `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`,
+                '_blank',
+                'noopener,noreferrer'
+              )
+
               try {
                 const res = await fetch(`${API_URL}/api/share/${category.id}?year=${year}`, {
                   credentials: 'include',
@@ -61,14 +71,10 @@ const CategoryCard = ({ category, year }: { category: Category, year: number }) 
                 link.remove()
                 URL.revokeObjectURL(objectUrl)
 
-                const tweetText = `My ${category.name} heatmap — tracked with HeatTrack 🔥`
-                window.open(
-                  `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`,
-                  '_blank',
-                  'noopener,noreferrer'
-                )
+                toast.success('Heatmap downloaded — attach it to your post')
               } catch (err) {
                 console.error(err)
+                toast.error('Could not generate your heatmap image')
               }
             }}
           >
@@ -114,7 +120,7 @@ const OverallCard = ({ year }: { year: number }) => {
         </span>
       </div>
       <HeatmapGrid
-        year={currentYear}
+        year={year}
         logs={[]}
         categoryColor="#6366f1"
         onDayClick={(date) => openDayModal(date, '')}

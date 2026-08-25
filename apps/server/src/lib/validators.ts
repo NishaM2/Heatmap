@@ -1,18 +1,6 @@
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import { createInsertSchema } from 'drizzle-zod'
 import { z } from 'zod'
-import { users, categories, dailyLogs, friendships, sharedGoals } from '../db/schema'
-
-//user
-export const insertUserSchema = createInsertSchema(users, {
-    email: z.string().email('Invalid email format'),
-    username: z.string()
-        .min(3, 'username must be at least 3 characters')
-        .max(20, 'username cannot exceed 20 characters')
-        .regex(/^[a-zA-Z0-9_]+$/, ' Username can only contain letters, numbers and underscores'),
-    passwordHash: z.string().optional(),
-})
-
-export const selectUserSchema = createSelectSchema(users)
+import { categories, dailyLogs, friendships, sharedGoals } from '../db/schema'
 
 //category
 export const insertCategorySchema = createInsertSchema(categories, {
@@ -75,6 +63,32 @@ export const insertSharedGoalSchema = createInsertSchema(sharedGoals, {
 
 export const updateSharedGoalSchema = insertSharedGoalSchema.partial()
 
+//route params and query strings
+//every :id / :categoryId lands in a uuid column, so an unvalidated value makes
+//Postgres raise 22P02 and surface as a 500 instead of a 400
+export const idParamSchema = z.object({
+    id: z.uuid('Invalid id'),
+})
+
+export const categoryIdParamSchema = z.object({
+    categoryId: z.uuid('Invalid category id'),
+})
+
+export const dayParamSchema = z.object({
+    categoryId: z.uuid('Invalid category id'),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be in YYYY-MM-DD format'),
+})
+
+//year is optional — controllers fall back to the current year
+export const yearQuerySchema = z.object({
+    year: z.string().regex(/^\d{4}$/, 'year must be a 4-digit year').optional(),
+})
+
+//accepting a shared goal writes a category id straight into a query
+export const acceptSharedGoalSchema = z.object({
+    receiverCategoryId: z.uuid('Invalid category id'),
+})
+
 //auth Validators are not from Drizzle They are pure Zod
 //these are not generated from schema because they handle raw user input before it touches the database
 export const registerSchema = z.object({
@@ -93,8 +107,6 @@ export const loginSchema = z.object({
     password: z.string().min(1, 'password is required'),
 })
 
-export type InsertUser = z.infer<typeof insertUserSchema>
-export type SelectUser = z.infer<typeof selectUserSchema>
 export type InsertCategory = z.infer<typeof insertCategorySchema >
 export type UpdateCategory = z.infer<typeof updateCategorySchema>
 export type InsertLog = z.infer<typeof insertLogSchema>

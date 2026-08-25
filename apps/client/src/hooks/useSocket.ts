@@ -4,6 +4,10 @@ import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 import { SOCKET_URL } from '@/lib/config'
 
+// Navbar remounts on every route change, so this keeps the warning to once per
+// page session instead of once per navigation.
+let warnedUnauthorized = false
+
 type NotificationData = {
   type: string
   message: string
@@ -29,9 +33,20 @@ export const useSocket = (onNotification: (data: NotificationData ) => void) => 
 
     socketRef.current = socket
 
-    socket.on('connect', () => {
-      socket.emit('join', user.id)
-      console.log('Socket connected, joined room:', user.id)
+    // The server authenticates the handshake from the session cookie and joins the
+    // user's room itself, so there is nothing to emit on connect.
+    socket.on('connect_error', (err) => {
+      // A rejected handshake will never succeed on retry — socket.io would
+      // otherwise reconnect forever, silently and invisibly.
+      if (err.message === 'unauthorized') {
+        socket.disconnect()
+        if (!warnedUnauthorized) {
+          warnedUnauthorized = true
+          toast('Live notifications unavailable', {
+            description: 'Try signing in again to reconnect.',
+          })
+        }
+      }
     })
 
     socket.on('notification', (data) => {

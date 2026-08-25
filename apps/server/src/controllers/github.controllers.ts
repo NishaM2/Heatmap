@@ -3,6 +3,7 @@ import { db } from "../db";
 import { betterAuthAccounts, categories } from "../db/schema";
 import { eq, and } from 'drizzle-orm'
 import { syncUserGitHub } from "../services/github.service";
+import { auth } from "../auth";
 
 export const githubSync = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -35,10 +36,21 @@ export const githubSync = async (req: Request, res: Response, next: NextFunction
                 })
             }
 
+            // Tokens are encrypted at rest (account.encryptOAuthTokens), so the raw column is ciphertext. Better Auth decrypts and refreshes it for us.
+            const { accessToken } = await auth.api.getAccessToken({
+                body: { accountId: account.id, userId: account.userId }
+            })
+
+            if (!accessToken) {
+                return res.status(400).json({
+                    message: 'GitHub token unavailable — please reconnect GitHub'
+                })
+            }
+
             const result = await syncUserGitHub(
                 account.userId,
-                account.accountId,  
-                account.accessToken!,  
+                account.accountId,
+                accessToken,
                 codingCategory.id
             )
 

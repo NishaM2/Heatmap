@@ -3,6 +3,7 @@ import { db } from '../db'
 import { betterAuthAccounts, categories } from '../db/schema'
 import { eq, and, isNotNull } from 'drizzle-orm'
 import { syncUserGitHub } from '../services/github.service'
+import { auth } from '../auth'
 
 const runGitHubSync = async () => {
     console.log('GitHub sync started:', new Date().toISOString())
@@ -37,10 +38,16 @@ const runGitHubSync = async () => {
             )
             if (!codingCategory) { skipped++; continue }
 
+            // Tokens are encrypted at rest (account.encryptOAuthTokens), so the raw column is ciphertext. Better Auth decrypts and refreshes it for us.
+            const { accessToken } = await auth.api.getAccessToken({
+                body: { accountId: account.id, userId: account.userId }
+            })
+            if (!accessToken) { skipped++; continue }
+
             await syncUserGitHub(
                 account.userId,
                 account.accountId,
-                account.accessToken,
+                accessToken,
                 codingCategory.id
             )
             synced++

@@ -15,6 +15,13 @@
       "when": 1787484598814,
       "tag": "0001_narrow_smasher",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787596227216,
+      "tag": "0002_shocking_iron_lad",
+      "breakpoints": true
     }
   ]
 }

@@ -1,9 +1,9 @@
+import 'dotenv/config'
 import express, { NextFunction } from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
-import dotenv from 'dotenv'
 import './db'
 import { auth } from './auth'
 import { toNodeHandler } from 'better-auth/node'
@@ -20,11 +20,12 @@ import rateLimit from 'express-rate-limit'
 import shareRouter from './api/share.routes'
 import { CLIENT_URL, SERVER_URL } from './lib/config'
 
-//loading environment variables
-dotenv.config()
-
 const app = express()
 const PORT = process.env.PORT || 3000
+
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1)
+}
 
 const wsOrigin = SERVER_URL.replace(/^http/, 'ws')
 // It secures HTTP headers automatically and prevents from attacks
@@ -67,6 +68,17 @@ const authLimiter = rateLimit({
     message: {
         status: 'error',
         message: 'Too many login attempts, please try again later'
+    }
+})
+
+// Share images are rendered with resvg, which is synchronous CPU work on the event
+// loop — a burst of requests would stall every other request. Keep it infrequent.
+const shareLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    message: {
+        status: 'error',
+        message: 'Too many image requests, please slow down'
     }
 })
 
@@ -114,7 +126,7 @@ app.use('/api/stats', statsRouter)
 app.use('/api/github', githubRouter)
 app.use('/api/friends', friendRouter)
 app.use('/api/shared-goals', sharedGoalRouter)
-app.use('/api/share', shareRouter)
+app.use('/api/share', shareLimiter, shareRouter)
 
 //error handler
 app.use((req: express.Request, res: express.Response) => {
