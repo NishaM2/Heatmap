@@ -15,6 +15,34 @@ const serverHost = new URL(serverURL).hostname
 const isCrossSite =
     !isLoopback(clientHost) && !isLoopback(serverHost) && clientHost !== serverHost
 
+    
+const socialProviders: {
+    github?: { clientId: string; clientSecret: string; scope: string[] }
+    google?: { clientId: string; clientSecret: string }
+} = {}
+
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    socialProviders.github = {
+        clientId: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+        scope: ['read:user', 'user:email'],
+    }
+}
+
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    socialProviders.google = {
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }
+}
+
+
+export const enabledSocialProviders = Object.keys(socialProviders)
+
+if (enabledSocialProviders.length === 0) {
+    console.warn('[auth] no social providers configured — only email/password sign-in is available')
+}
+
 export const auth = betterAuth({
     baseURL: serverURL,
     secret: process.env.BETTER_AUTH_SECRET!,
@@ -40,13 +68,7 @@ export const auth = betterAuth({
         sendVerificationEmail,
     },
 
-    socialProviders: {
-        github: {
-            clientId: process.env.GITHUB_CLIENT_ID!,
-            clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-            scope: ['read:user', 'user:email'],
-        },
-    },
+    socialProviders,
 
     account: {
         encryptOAuthTokens: true,

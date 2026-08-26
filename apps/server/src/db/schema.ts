@@ -114,6 +114,9 @@ export const betterAuthSessions = pgTable('session', {
 
 export const betterAuthAccounts = pgTable('account', {
     id: text('id').primaryKey(),
+
+    issuer: text('issuer').notNull(),
+
     accountId: text('account_id').notNull(),
     providerId: text('provider_id').notNull(),
     userId: text('user_id').notNull().references(() => betterAuthUsers.id, {
@@ -128,7 +131,10 @@ export const betterAuthAccounts = pgTable('account', {
     password: text('password'),
     createdAt: timestamp('created_at').notNull(),
     updatedAt: timestamp('updated_at').notNull(),
-})
+}, (table) => ({
+    uniqueIssuerAccount: uniqueIndex('unique_issuer_account_id')
+        .on(table.issuer, table.accountId),
+}))
 
 export const betterAuthVerifications = pgTable('verification', {
     id: text('id').primaryKey(),

@@ -5,7 +5,7 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
 import './db'
-import { auth } from './auth'
+import { auth, enabledSocialProviders } from './auth'
 import { toNodeHandler } from 'better-auth/node'
 import categoryRouter from './api/category.routes'
 import logRouter from './api/log.routes'
@@ -83,8 +83,13 @@ const shareLimiter = rateLimit({
 })
 
 app.use(globalLimiter)
-app.use('/api/auth/sign-in', authLimiter)
-app.use('/api/auth/sign-up', authLimiter)
+
+app.use('/api/auth/sign-in/email', authLimiter)
+app.use('/api/auth/sign-up/email', authLimiter)
+
+app.get('/api/auth-providers', (req, res) => {
+    res.json({ providers: enabledSocialProviders })
+})
 
 app.get('/api/health', (req, res) => {
     res.json({

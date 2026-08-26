@@ -22,6 +22,13 @@
       "when": 1787596227216,
       "tag": "0002_shocking_iron_lad",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787730801528,
+      "tag": "0003_lumpy_roland_deschain",
+      "breakpoints": true
     }
   ]
 }
