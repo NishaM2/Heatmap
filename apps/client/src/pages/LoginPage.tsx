@@ -1,19 +1,27 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { authClient } from '@/lib/authClient'
+import { Eye, EyeOff } from 'lucide-react'
+import AuthShell, {
+  FormError,
+  OrDivider,
+  SocialRow,
+  SubmitButton,
+  fieldClass,
+  labelClass,
+} from '@/components/AuthShell'
+import { oauthCallbackURL, useAuthProviders, type SocialProvider } from '@/lib/authProviders'
 
 const LoginPage = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const providers = useAuthProviders()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,80 +31,89 @@ const LoginPage = () => {
       await login(email, password)
       navigate('/dashboard')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message: 'Login failed')
+      setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleGitHub = async () => {
-    await authClient.signIn.social({
-      provider: 'github',
-      callbackURL: '/dashboard',
+  const handleSocial = async (provider: SocialProvider) => {
+    setError('')
+    const { error: socialError } = await authClient.signIn.social({
+      provider,
+      callbackURL: oauthCallbackURL('/dashboard'),
     })
+    if (socialError) {
+      setError(socialError.message || `Could not sign in with ${provider}`)
+    }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
-          <CardDescription>Sign in to your account</CardDescription>
-        </CardHeader>
-        <CardContent>
- 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="nisha@gmail.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in'}
-            </Button>
-          </form>
+    <AuthShell
+      title="Welcome back"
+      subtitle="Please enter your details to sign in."
+      footer={
+        <>
+          Don&apos;t have an account?{' '}
+          <Link to="/register" className="font-medium text-[#111318] underline underline-offset-2 hover:text-[#2b7ff5]">
+            Sign up
+          </Link>
+        </>
+      }
+    >
+      <SocialRow providers={providers} onSelect={handleSocial} disabled={loading} />
 
-          <div className="flex items-center gap-3 my-4">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground">or</span>
-            <div className="flex-1 h-px bg-border" />
+      <OrDivider />
+
+      <form onSubmit={handleSubmit} noValidate={false}>
+        <div>
+          <label htmlFor="email" className={labelClass}>Email</label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={loading}
+            className={fieldClass}
+          />
+        </div>
+
+        <div className="mt-4">
+          <label htmlFor="password" className={labelClass}>Password</label>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+              className={`${fieldClass} pr-11`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-[#a3a9b3] transition hover:text-[#111318] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2b7ff5]"
+            >
+              {showPassword ? <EyeOff className="h-4.25 w-4.25" /> : <Eye className="h-4.25 w-4.25" />}
+            </button>
           </div>
+          <p className="mt-2 text-[12.5px] text-[#8a9099]">Must be at least 8 characters</p>
+        </div>
 
-            <Button variant="outline" onClick={handleGitHub} className="w-full flex items-center gap-2">
-              Continue with GitHub
-            </Button>
+        <FormError message={error} />
 
-        </CardContent>
-        <CardFooter className="justify-center">
-          <p className="text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
-    </div>
+        <SubmitButton loading={loading} loadingLabel="Signing in...">
+          Sign in
+        </SubmitButton>
+      </form>
+    </AuthShell>
   )
 }
 
