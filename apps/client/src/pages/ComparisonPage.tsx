@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-
 import { request } from '@/services/api'
 import { useAuth } from '@/hooks/useAuth'
 import { useFriends, useSharedGoals } from '@/hooks/useFriends'
@@ -179,7 +178,7 @@ const ComparisonPage = () => {
   })
   const comparison = comparisonData as Comparison | undefined
 
-  /** Name/avatar for the other party, resolved from the friends list. */
+  // Name/avatar for the other party, resolved from the friends list.
   const partnerOf = (goal: SharedGoal) => {
     const otherId = goal.initiatorId === user?.id ? goal.receiverId : goal.initiatorId
     return friends.find((f) => f.user.id === otherId)?.user
@@ -401,7 +400,6 @@ const ComparisonPage = () => {
           </>
         )}
       </div>
-
       <DayModal />
     </div>
   )
