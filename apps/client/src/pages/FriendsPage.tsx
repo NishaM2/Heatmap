@@ -1,11 +1,8 @@
 import { useState } from 'react'
-import Navbar from '@/components/Navbar'
-import FriendCard from '@/components/FriendCard'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useNavigate } from 'react-router-dom'
+import { Check, Search, UserPlus, Users, X } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useAuth } from '@/hooks/useAuth'
 import {
   useFriends,
   useFriendRequests,
@@ -14,267 +11,330 @@ import {
   useAcceptFriendRequest,
   useDeclineFriendRequest,
   useUnfriend,
+  useSharedGoals,
+  useAcceptSharedGoal,
+  useDeclineSharedGoal,
 } from '@/hooks/useFriends'
-import { Search, UserPlus, Check, X } from 'lucide-react'
 import type { Friend, FriendRequest, SearchUser, SharedGoal } from '@/types'
-import { useNavigate } from 'react-router-dom'
-import { useSharedGoals, useAcceptSharedGoal, useDeclineSharedGoal } from '@/hooks/useFriends'
-import { useAuth } from '@/hooks/useAuth'
+import PageBackdrop from '@/components/PageBackdrop'
+import AppNavbar from '@/components/AppNavbar'
 import AcceptGoalModal from '@/components/AcceptGoalModal'
+import SharedGoalModal from '@/components/SharedGoalModal'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
-// Search results component
-const SearchResults = ({ username }: { username: string }) => {
-  const { data: results = [], isLoading } = useSearchUsers(username)
-  const sendRequest = useSendFriendRequest()
 
-  if (username.length <= 2) return null
+const SectionHead = ({
+  title,
+  action,
+}: {
+  title: string
+  action?: React.ReactNode
+}) => (
+  <div className="mt-10 flex items-end justify-between gap-4 border-b border-neutral-900 pb-3">
+    <h2 className="font-Hero text-[24px] leading-none tracking-tight">{title}</h2>
+    {action}
+  </div>
+)
 
-  if (isLoading) {
-    return (
-      <div className="space-y-2 mt-2">
-        {[1, 2].map(i => (
-          <div key={i} className="h-14 bg-muted rounded-lg animate-pulse" />
-        ))}
-      </div>
-    )
-  }
+// Visualises a friend's current streak. The API returns `currentStreak` only — there is no endpoint for another user's day-by-day logs — 
+// so this is a bar of that number, not a fabricated calendar.
 
-  if (results.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground text-center py-4">
-        No users found for "{username}"
-      </p>
-    )
-  }
-
+const StreakBar = ({ streak }: { streak: number }) => {
+  const cells = 24
+  const filled = Math.min(streak, cells)
   return (
-    <div className="space-y-2 mt-2">
-      {results.map((user: SearchUser) => (
-        <div
-          key={user.id}
-          className="flex items-center justify-between p-3 rounded-lg border bg-card"
-        >
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={user.image || ''} />
-              <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm font-medium">{user.name}</p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => sendRequest.mutate(user.id)}
-            disabled={sendRequest.isPending}
-          >
-            <UserPlus className="h-4 w-4 mr-1" />
-            Add
-          </Button>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// Friend requests component
-const FriendRequests = () => {
-  const { data: requests = [], isLoading } = useFriendRequests()
-  const acceptRequest = useAcceptFriendRequest()
-  const declineRequest = useDeclineFriendRequest()
-
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        {[1, 2].map(i => (
-          <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
-        ))}
-      </div>
-    )
-  }
-
-  if (requests.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-4xl mb-3">📭</div>
-        <p className="text-muted-foreground text-sm">No pending requests</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-2">
-      {requests.map((request: FriendRequest) => (
-        <div
-          key={request.id}
-          className="flex items-center justify-between p-4 rounded-lg border bg-card"
-        >
-          <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9">
-              <AvatarFallback>?</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm font-medium">Friend Request</p>
-              <p className="text-xs text-muted-foreground">
-                From: {request.requesterId.slice(0, 8)}...
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={() => acceptRequest.mutate(request.id)}
-              disabled={acceptRequest.isPending}
-            >
-              <Check className="h-4 w-4 mr-1" />
-              Accept
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => declineRequest.mutate(request.id)}
-              disabled={declineRequest.isPending}
-            >
-              <X className="h-4 w-4 mr-1" />
-              Decline
-            </Button>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// Friends list component
-const FriendsList = () => {
-  const { data: friends = [], isLoading } = useFriends()
-  const unfriend = useUnfriend()
-
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
-        ))}
-      </div>
-    )
-  }
-
-  if (friends.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-4xl mb-3">👋</div>
-        <p className="text-lg font-medium mb-1">No friends yet</p>
-        <p className="text-muted-foreground text-sm">
-          Search for users above to add friends
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-2">
-      {friends.map((friend: Friend) => (
-        <FriendCard
-          key={friend.friendshipId}
-          friend={friend}
-          onUnfriend={(id) => unfriend.mutate(id)}
+    <div className="flex gap-0.75" title={`${streak} day streak`}>
+      {Array.from({ length: cells }, (_, i) => (
+        <span
+          key={i}
+          className="h-2.5 w-2.5 rounded-xs"
+          style={{
+            backgroundColor:
+              i < filled ? (i > cells - 6 ? '#0f172a' : i > cells - 12 ? '#475569' : '#94a3b8') : '#e2e8f0',
+          }}
         />
       ))}
     </div>
   )
 }
 
-// Shared goals
-const SharedGoalsList = () => {
-  const navigate = useNavigate()
-  const { user } = useAuth()
+const RowShell = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-neutral-200 py-4 last:border-b-0">
+    {children}
+  </div>
+)
+
+// Page 
+
+const FriendsPage = () => {
+  const [input, setInput] = useState('')
+  const [forced, setForced] = useState<string | null>(null)
+  const [showAllRequests, setShowAllRequests] = useState(false)
+  const [goalFor, setGoalFor] = useState<{ id: string; name: string } | null>(null)
   const [acceptingGoalId, setAcceptingGoalId] = useState<string | null>(null)
 
-  const { data: goals = [], isLoading } = useSharedGoals()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const debounced = useDebounce(input, 300)
+  // The Search button skips the debounce rather than waiting it out.
+  const query = forced ?? debounced
+
+  const { data: resultsData = [], isLoading: searching } = useSearchUsers(query)
+  const results = resultsData as SearchUser[]
+  const { data: requestsData = [] } = useFriendRequests()
+  const requests = requestsData as FriendRequest[]
+  const { data: friendsData = [], isLoading: loadingFriends } = useFriends()
+  const friends = friendsData as Friend[]
+  const { data: goalsData = [] } = useSharedGoals()
+  const goals = goalsData as SharedGoal[]
+
+  const sendRequest = useSendFriendRequest()
+  const acceptRequest = useAcceptFriendRequest()
+  const declineRequest = useDeclineFriendRequest()
+  const unfriend = useUnfriend()
   const acceptGoal = useAcceptSharedGoal()
   const declineGoal = useDeclineSharedGoal()
 
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        {[1, 2].map(i => (
-          <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
-        ))}
-      </div>
-    )
-  }
+  const visibleRequests = showAllRequests ? requests : requests.slice(0, 3)
 
-  if (goals.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-4xl mb-3">🎯</div>
-        <p className="text-lg font-medium mb-1">No shared goals yet</p>
-        <p className="text-muted-foreground text-sm">
-          Click "Track Together" on a friend to start one
-        </p>
-      </div>
-    )
-  }
+  return (
+    <div className="relative min-h-screen bg-white p-3 font-sans text-neutral-900 antialiased">
+      <PageBackdrop />
 
-    return (
-    <>
-      <div className="space-y-2">
-        {goals.map((goal: SharedGoal) => {
-          const isReceiver = goal.receiverId === user?.id
+      <div className="relative z-10 mx-auto w-full max-w-4xl px-3 pb-16 sm:px-5">
+        <AppNavbar active="friends" />
 
-          return (
-            <div
-              key={goal.id}
-              className="flex items-center justify-between p-4 rounded-lg border bg-card"
-            >
-              <div>
-                <p className="text-sm font-medium">
-                  {goal.status === 'pending' ? '⏳ Pending invite' : '✅ Active goal'}
-                </p>
-                <p className="text-xs text-muted-foreground capitalize">
-                  Status: {goal.status}
-                </p>
-              </div>
+        <h1 className="font-Hero text-[34px] leading-none tracking-tight sm:text-[40px]">Friends</h1>
 
-              <div className="flex gap-2">
-                {goal.status === 'pending' && isReceiver && (
-                  <>
-                    <Button
-                      size="sm"
-                      onClick={() => setAcceptingGoalId(goal.id)} 
-                    >
-                      <Check className="h-4 w-4 mr-1" />
-                      Accept
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => declineGoal.mutate(goal.id)}
-                      disabled={declineGoal.isPending}
-                    >
-                      <X className="h-4 w-4 mr-1" />
-                      Decline
-                    </Button>
-                  </>
-                )}
-                {goal.status === 'accepted' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate(`/comparison/${goal.id}`)}
+        {/* search */}
+        <form
+          onSubmit={(e) => { e.preventDefault(); setForced(input) }}
+          className="mt-6 flex gap-2"
+        >
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" />
+            <input
+              type="search"
+              value={input}
+              onChange={(e) => { setInput(e.target.value); setForced(null) }}
+              placeholder="Search people by name"
+              aria-label="Search people by name"
+              className="h-10 w-full rounded-md border border-neutral-200 bg-white pl-9 pr-3 text-sm shadow-sm outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
+            />
+          </div>
+          <button
+            type="submit"
+            className="h-10 shrink-0 rounded-md bg-neutral-900 px-5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-neutral-800"
+          >
+            Search
+          </button>
+        </form>
+
+        {query.length > 2 && (
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-2 shadow-sm">
+            {searching ? (
+              <p className="px-3 py-4 text-sm text-neutral-500">Searching…</p>
+            ) : results.length === 0 ? (
+              <p className="px-3 py-4 text-sm text-neutral-500">No one found for “{query}”.</p>
+            ) : (
+              results.map((u) => (
+                <div key={u.id} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-neutral-50">
+                  <Avatar className="size-8">
+                    <AvatarImage src={u.image || ''} alt={u.name} />
+                    <AvatarFallback className="text-xs">{u.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <p className="min-w-0 flex-1 truncate text-sm font-medium">{u.name}</p>
+                  <button
+                    type="button"
+                    onClick={() => sendRequest.mutate(u.id)}
+                    disabled={sendRequest.isPending}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-neutral-200 px-3 text-xs font-medium transition-colors hover:bg-neutral-100 disabled:opacity-60"
                   >
-                    View Comparison
-                  </Button>
-                )}
+                    <UserPlus className="size-3.5" />
+                    Add
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* friend requests */}
+        <SectionHead
+          title="Friend requests"
+          action={
+            requests.length > 3 ? (
+              <button
+                type="button"
+                onClick={() => setShowAllRequests((v) => !v)}
+                className="text-xs uppercase tracking-wider text-neutral-500 underline underline-offset-4 transition-colors hover:text-neutral-900"
+              >
+                {showAllRequests ? 'Show less' : `View all (${requests.length})`}
+              </button>
+            ) : undefined
+          }
+        />
+
+        {requests.length === 0 ? (
+          <p className="py-6 text-sm text-neutral-500">No pending requests.</p>
+        ) : (
+          visibleRequests.map((r) => (
+            <RowShell key={r.id}>
+              <Avatar className="size-9">
+                <AvatarFallback className="text-xs">?</AvatarFallback>
+              </Avatar>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-medium">Friend request</p>
+                {/* The API returns the friendship row only — no requester profile yet. */}
+                <p className="truncate text-xs text-neutral-500">
+                  From user {r.requesterId.slice(0, 8)}…
+                </p>
               </div>
-            </div>
-          )
-        })}
+
+              <div className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  onClick={() => acceptRequest.mutate(r.id)}
+                  disabled={acceptRequest.isPending}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md bg-neutral-900 px-3 text-xs font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-60"
+                >
+                  <Check className="size-3.5" />
+                  Accept
+                </button>
+                <button
+                  type="button"
+                  onClick={() => declineRequest.mutate(r.id)}
+                  disabled={declineRequest.isPending}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-neutral-200 px-3 text-xs font-medium transition-colors hover:bg-neutral-100 disabled:opacity-60"
+                >
+                  <X className="size-3.5" />
+                  Decline
+                </button>
+              </div>
+            </RowShell>
+          ))
+        )}
+
+        {/* my friends */}
+        <SectionHead title="My friends" />
+
+        {loadingFriends ? (
+          <div className="flex flex-col gap-3 py-4">
+            {[0, 1].map((i) => <div key={i} className="h-14 animate-pulse rounded-lg bg-neutral-100" />)}
+          </div>
+        ) : friends.length === 0 ? (
+          <p className="py-6 text-sm text-neutral-500">
+            No friends yet — search above to send your first request.
+          </p>
+        ) : (
+          friends.map((f) => (
+            <RowShell key={f.friendshipId}>
+              <Avatar className="size-9">
+                <AvatarImage src={f.user?.image || ''} alt={f.user?.name} />
+                <AvatarFallback className="text-xs">
+                  {f.user?.name?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+
+              <p className="w-28 shrink-0 truncate text-[15px] font-medium">{f.user?.name}</p>
+
+              <div className="hidden flex-1 sm:block">
+                <StreakBar streak={f.currentStreak} />
+              </div>
+
+              <p className="shrink-0 font-Hero text-[20px] leading-none tabular-nums">
+                {f.currentStreak}
+                <span className="ml-1 font-sans text-[11px] text-neutral-500">days</span>
+              </p>
+
+              <div className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setGoalFor({ id: f.user.id, name: f.user.name })}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-neutral-200 px-3 text-xs font-medium transition-colors hover:bg-neutral-100"
+                >
+                  <Users className="size-3.5" />
+                  Track together
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm(`Remove ${f.user?.name} from your friends?`)) {
+                      unfriend.mutate(f.friendshipId)
+                    }
+                  }}
+                  disabled={unfriend.isPending}
+                  aria-label={`Unfriend ${f.user?.name}`}
+                  className="inline-flex size-8 items-center justify-center rounded-md border border-neutral-200 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:opacity-60"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            </RowShell>
+          ))
+        )}
+
+        {/* shared goals */}
+        {goals.length > 0 && (
+          <>
+            <SectionHead title="Shared goals" />
+            {goals.map((g) => {
+              const isReceiver = g.receiverId === user?.id
+              return (
+                <RowShell key={g.id}>
+                  <p className="min-w-0 flex-1 text-[15px] font-medium capitalize">
+                    {g.status === 'pending' ? 'Pending invite' : `${g.status} goal`}
+                  </p>
+
+                  <div className="flex shrink-0 gap-2">
+                    {g.status === 'pending' && isReceiver && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setAcceptingGoalId(g.id)}
+                          className="inline-flex h-8 items-center gap-1.5 rounded-md bg-neutral-900 px-3 text-xs font-medium text-white transition-colors hover:bg-neutral-800"
+                        >
+                          <Check className="size-3.5" />
+                          Accept
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => declineGoal.mutate(g.id)}
+                          disabled={declineGoal.isPending}
+                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-neutral-200 px-3 text-xs font-medium transition-colors hover:bg-neutral-100 disabled:opacity-60"
+                        >
+                          <X className="size-3.5" />
+                          Decline
+                        </button>
+                      </>
+                    )}
+                    {g.status === 'accepted' && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/comparison/${g.id}`)}
+                        className="inline-flex h-8 items-center rounded-md border border-neutral-200 px-3 text-xs font-medium transition-colors hover:bg-neutral-100"
+                      >
+                        View comparison
+                      </button>
+                    )}
+                  </div>
+                </RowShell>
+              )
+            })}
+          </>
+        )}
       </div>
 
-      {/* Accept modal */}
+      {goalFor && (
+        <SharedGoalModal
+          open
+          onClose={() => setGoalFor(null)}
+          receiverId={goalFor.id}
+          receiverName={goalFor.name}
+        />
+      )}
+
       <AcceptGoalModal
         open={!!acceptingGoalId}
         onClose={() => setAcceptingGoalId(null)}
@@ -287,63 +347,6 @@ const SharedGoalsList = () => {
           )
         }}
       />
-    </>
-  )
-}
-  
-
-// Main Friends Page
-const FriendsPage = () => {
-  const [searchInput, setSearchInput] = useState('')
-  const debouncedSearch = useDebounce(searchInput, 300)
-  const { data: requests = [] } = useFriendRequests()
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="max-w-2xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Friends</h1>
-          <p className="text-muted-foreground text-sm">
-            Track goals together and stay accountable
-          </p>
-        </div>
-
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
-        {searchInput.length > 2 && (
-          <div className="mb-6">
-            <SearchResults username={debouncedSearch} />
-          </div>
-        )}
-
-        <Tabs defaultValue="friends">
-          <TabsList className="w-full mb-4">
-            <TabsTrigger value="friends" className="flex-1">Friends</TabsTrigger>
-            <TabsTrigger value="requests" className="flex-1">
-              Requests
-              {requests.length > 0 && (
-                <span className="ml-2 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {requests.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="goals" className="flex-1">Goals</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="friends"><FriendsList /></TabsContent>
-          <TabsContent value="requests"><FriendRequests /></TabsContent>
-          <TabsContent value="goals"><SharedGoalsList /></TabsContent>
-        </Tabs>
-      </main>
     </div>
   )
 }
