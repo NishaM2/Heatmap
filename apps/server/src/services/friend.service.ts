@@ -69,13 +69,28 @@ export const getFriendsWithStats = async (userId: string) => {
 }
 
 export const getPendingRequests = async (userId: string) => {
-    const pending = await db.select()
+    // Joined so the client can show who sent the request rather than a raw id.
+    const pending = await db.select({
+        id: friendships.id,
+        requesterId: friendships.requesterId,
+        receiverId: friendships.receiverId,
+        status: friendships.status,
+        createdAt: friendships.createdAt,
+        updatedAt: friendships.updatedAt,
+        requesterName: betterAuthUsers.name,
+        requesterImage: betterAuthUsers.image,
+    })
         .from(friendships)
+        .innerJoin(betterAuthUsers, eq(betterAuthUsers.id, friendships.requesterId))
         .where(and(
             eq(friendships.receiverId, userId),
             eq(friendships.status, 'pending')
         ))
-    return pending
+
+    return pending.map(({ requesterName, requesterImage, ...row }) => ({
+        ...row,
+        requester: { id: row.requesterId, name: requesterName, image: requesterImage },
+    }))
 }
 
 export const searchUsers = async (userId: string, username: string) => {
@@ -141,8 +156,6 @@ export const sendRequest = async (userId: string, receiverId: string,) => {
             throw error
         }
 
-        // Declined. Reopen the row under whoever is asking now — otherwise a single
-        // decline leaves the pair permanently unable to reconnect.
         const revived = await db.update(friendships)
             .set({
                 requesterId: userId,

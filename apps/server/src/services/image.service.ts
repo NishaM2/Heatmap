@@ -7,9 +7,8 @@ import { eq, and, gte, lte } from 'drizzle-orm'
 import * as fs from 'fs'
 import * as path from 'path'
 import { yearDates, yearStart, yearEnd } from '../lib/dates'
+import { calculateLongestStreak, totalActiveDays } from './streak.service'
 
-// Read the font once and cache it, but lazily: reading at module load means a missing font file takes 
-// the whole server down at boot instead of failing the one endpoint that needs it.
 let fontData: Buffer | null = null
 const getFontData = (): Buffer => {
   if (!fontData) {
@@ -20,22 +19,36 @@ const getFontData = (): Buffer => {
   return fontData
 }
 
+const INK = '#000000'
+const CANVAS = '#f8fafc'
+const CARD = '#ffffff'
+const HAIRLINE = '#e2e8f0'
+const MUTED = '#94a3b8'
+const SUBTLE = '#64748b'
+const HEAT = ['#e2e8f0', '#cbd5e1', '#94a3b8', '#475569', '#0f172a'] as const
+
+// The same mark the login page and app navbar use: lucide's Activity glyph,
+// white on a black rounded tile. Satori has no icon set, so the glyph is
+// inlined as an SVG data URI and drawn as an image.
+const ACTIVITY_PATH =
+  'M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2'
+
+const activityMark = (size: number, color: string) =>
+  'data:image/svg+xml;base64,' +
+  Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${ACTIVITY_PATH}"/></svg>`
+  ).toString('base64')
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 
+const WIDTH = 800
+const HEIGHT = 340
 const CELL = 10
 const GAP = 2
 const COL_WIDTH = CELL + GAP
 
-type Square = { date: string; level: number }
-
-const getOpacity = (level: number) => {
-  if (level === 0) return 0.1
-  if (level === 1) return 0.25
-  if (level === 2) return 0.5
-  if (level === 3) return 0.75
-  return 1.0
-}
+type Square = { date: string; level: number; future: boolean }
 
 export const generateHeatmapImage = async (
   userId: string,
@@ -73,7 +86,7 @@ export const generateHeatmapImage = async (
   if (!category[0]) throw new Error('Category not found')
 
   const categoryName = category[0].name
-  const categoryColor = category[0].color || '#22c55e'
+  const categoryColor = category[0].color || '#0f172a'
 
   // Build log map
   const logMap: Record<string, number> = {}
@@ -81,11 +94,18 @@ export const generateHeatmapImage = async (
     logMap[log.date] = log.effortLevel
   }
 
+  const today = new Date().toISOString().slice(0, 10)
+
   // Full year of squares — timezone-independent, leap-year correct
   const squares: Square[] = yearDates(y).map(date => ({
     date,
-    level: logMap[date] ?? 0
+    level: logMap[date] ?? 0,
+    future: date > today,
   }))
+
+  const activeDates = Object.keys(logMap).sort()
+  const daysTracked = totalActiveDays(activeDates)
+  const longestStreak = calculateLongestStreak(activeDates)
 
   // Pad the front so row 0 is Sunday and the day labels are truthful
   const jan1Weekday = new Date(Date.UTC(y, 0, 1)).getUTCDay() // 0 = Sunday
@@ -111,133 +131,234 @@ export const generateHeatmapImage = async (
     return { month, colIndex }
   })
 
-  // Build SVG using Satori
   const svg = await satori(
     React.createElement('div', {
       style: {
         display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: '#0f172a',
-        padding: '32px',
-        borderRadius: '12px',
-        width: '800px',
-        height: '260px',
+        width: `${WIDTH}px`,
+        height: `${HEIGHT}px`,
+        backgroundColor: CANVAS,
+        padding: '14px',
+        fontFamily: 'BebasNeue',
       }
     },
 
-      // Title row
+      // Card — white, hairline border, generous radius, like every panel on the site
       React.createElement('div', {
         style: {
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '16px',
+          flexDirection: 'column',
+          flexGrow: 1,
+          backgroundColor: CARD,
+          border: `1px solid ${HAIRLINE}`,
+          borderRadius: '20px',
+          padding: '30px 32px',
         }
       },
-        React.createElement('div', {
-          style: { color: '#f1f5f9', fontSize: '18px', fontWeight: 'bold', fontFamily: 'BebasNeue' }
-        }, `${categoryName} — ${y}`),
-        React.createElement('div', {
-          style: { color: '#94a3b8', fontSize: '13px', fontFamily: 'BebasNeue' }
-        }, 'HeatTrack')
-      ),
 
-      // Day labels + grid row
-      React.createElement('div', {
-        style: { display: 'flex', flexDirection: 'row' }
-      },
-
-        // Day labels column (Mon, Wed, Fri)
+        // brand row
         React.createElement('div', {
           style: {
             display: 'flex',
-            flexDirection: 'column',
-            gap: `${GAP}px`,
-            marginRight: '4px',
-            marginTop: '16px',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
           }
         },
-          ...DAY_LABELS.map(label =>
+          React.createElement('div', {
+            style: { display: 'flex', flexDirection: 'row', alignItems: 'center' }
+          },
+            // the logo lockup from the login page / app navbar
             React.createElement('div', {
               style: {
-                height: `${CELL}px`,
-                width: '24px',
-                color: '#64748b',
-                fontSize: '9px',
-                fontFamily: 'BebasNeue',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
+                width: '22px',
+                height: '22px',
+                borderRadius: '6px',
+                backgroundColor: INK,
+                marginRight: '9px',
               }
-            }, label)
-          )
+            },
+              React.createElement('img', {
+                src: activityMark(13, '#ffffff'),
+                width: 13,
+                height: 13,
+              })
+            ),
+            React.createElement('div', {
+              style: { color: INK, fontSize: '21px', letterSpacing: '0.5px' }
+            }, 'HeatTrack')
+          ),
+          React.createElement('div', {
+            style: { color: MUTED, fontSize: '20px', letterSpacing: '1px' }
+          }, String(y))
         ),
 
-        // Month labels + squares
+        // habit heading
         React.createElement('div', {
-          style: { display: 'flex', flexDirection: 'column' }
+          style: {
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginTop: '18px',
+          }
         },
-
-          // Month labels
+          // the one place the habit's own colour shows, mirroring the settings list
           React.createElement('div', {
             style: {
               display: 'flex',
-              flexDirection: 'row',
-              marginBottom: '4px',
-              height: '12px',
+              width: '11px',
+              height: '11px',
+              borderRadius: '6px',
+              backgroundColor: categoryColor,
+              marginRight: '10px',
             }
-          },
-            ...monthLabels.map(({ month, colIndex }, i) => {
-              const nextColIndex = monthLabels[i + 1]?.colIndex ?? columns.length
-              const widthPx = (nextColIndex - colIndex) * COL_WIDTH
-              return React.createElement('div', {
-                style: {
-                  width: `${widthPx}px`,
-                  color: '#64748b',
-                  fontSize: '10px',
-                  fontFamily: 'BebasNeue',
-                  flexShrink: 0,
-                }
-              }, month)
-            })
-          ),
+          }),
+          React.createElement('div', {
+            style: { color: INK, fontSize: '34px', letterSpacing: '0.5px' }
+          }, categoryName)
+        ),
 
-          // Grid — 7 rows × N cols
+        // grid
+        React.createElement('div', {
+          style: { display: 'flex', flexDirection: 'row', marginTop: '20px' }
+        },
+
+          // day labels
           React.createElement('div', {
             style: {
               display: 'flex',
               flexDirection: 'column',
               gap: `${GAP}px`,
+              width: '28px',
+              marginRight: '6px',
+              marginTop: '20px',
             }
           },
-            ...Array.from({ length: 7 }, (_, row) =>
+            ...DAY_LABELS.map(label =>
               React.createElement('div', {
                 style: {
                   display: 'flex',
-                  flexDirection: 'row',
-                  gap: `${GAP}px`,
+                  height: `${CELL}px`,
+                  alignItems: 'center',
+                  color: MUTED,
+                  fontSize: '11px',
                 }
-              },
-                ...columns.map(col => {
-                  const sq = col[row]
-                  return React.createElement('div', {
-                    style: {
-                      width: `${CELL}px`,
-                      height: `${CELL}px`,
-                      borderRadius: '2px',
-                      backgroundColor: sq && sq.level > 0 ? categoryColor : '#1e293b',
-                      opacity: sq ? getOpacity(sq.level) : 0.1,
-                    }
+              }, label)
+            )
+          ),
+
+          React.createElement('div', {
+            style: { display: 'flex', flexDirection: 'column' }
+          },
+
+            // month labels
+            React.createElement('div', {
+              style: {
+                display: 'flex',
+                flexDirection: 'row',
+                height: '14px',
+                marginBottom: '6px',
+              }
+            },
+              ...monthLabels.map(({ month, colIndex }, i) => {
+                const nextColIndex = monthLabels[i + 1]?.colIndex ?? columns.length
+                return React.createElement('div', {
+                  style: {
+                    display: 'flex',
+                    width: `${(nextColIndex - colIndex) * COL_WIDTH}px`,
+                    color: MUTED,
+                    fontSize: '12px',
+                    flexShrink: 0,
+                  }
+                }, month)
+              })
+            ),
+
+            // 7 rows x N columns
+            React.createElement('div', {
+              style: { display: 'flex', flexDirection: 'column', gap: `${GAP}px` }
+            },
+              ...Array.from({ length: 7 }, (_, row) =>
+                React.createElement('div', {
+                  style: { display: 'flex', flexDirection: 'row', gap: `${GAP}px` }
+                },
+                  ...columns.map(col => {
+                    const sq = col[row]
+                    return React.createElement('div', {
+                      style: {
+                        display: 'flex',
+                        width: `${CELL}px`,
+                        height: `${CELL}px`,
+                        borderRadius: '2px',
+                        backgroundColor: sq ? (HEAT[sq.level] ?? HEAT[0]) : 'transparent',
+                        opacity: sq && sq.future ? 0.4 : 1,
+                      }
+                    })
                   })
-                })
+                )
               )
             )
+          )
+        ),
+
+        // footer
+        React.createElement('div', {
+          style: {
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: 'auto',
+            paddingTop: '18px',
+          }
+        },
+
+          React.createElement('div', {
+            style: { display: 'flex', flexDirection: 'row', alignItems: 'center' }
+          },
+            React.createElement('div', {
+              style: { color: INK, fontSize: '17px', letterSpacing: '0.4px' }
+            }, `${daysTracked} ${daysTracked === 1 ? 'day' : 'days'} tracked`),
+            React.createElement('div', {
+              style: { color: HAIRLINE, fontSize: '15px', marginLeft: '9px', marginRight: '9px' }
+            }, '/'),
+            React.createElement('div', {
+              style: { color: SUBTLE, fontSize: '17px', letterSpacing: '0.4px' }
+            }, `longest streak ${longestStreak}`)
+          ),
+
+          
+          React.createElement('div', {
+            style: { display: 'flex', flexDirection: 'row', alignItems: 'center' }
+          },
+            React.createElement('div', {
+              style: { color: MUTED, fontSize: '13px', marginRight: '7px' }
+            }, 'Less'),
+            ...HEAT.map(shade =>
+              React.createElement('div', {
+                style: {
+                  display: 'flex',
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '2px',
+                  backgroundColor: shade,
+                  marginRight: '3px',
+                }
+              })
+            ),
+            React.createElement('div', {
+              style: { color: MUTED, fontSize: '13px', marginLeft: '4px' }
+            }, 'More')
           )
         )
       )
     ),
     {
-      width: 800,
-      height: 260,
+      width: WIDTH,
+      height: HEIGHT,
       fonts: [
         {
           name: 'BebasNeue',

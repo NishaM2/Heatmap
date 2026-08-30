@@ -4,6 +4,7 @@ import { betterAuthAccounts, categories } from "../db/schema";
 import { eq, and } from 'drizzle-orm'
 import { syncUserGitHub } from "../services/github.service";
 import { auth } from "../auth";
+import { APIError } from 'better-auth/api';
 
 export const githubSync = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -17,7 +18,8 @@ export const githubSync = async (req: Request, res: Response, next: NextFunction
 
         if (githubAccount.length === 0) {
             return res.status(400).json({
-                "message": "Github not connected"
+                code: 'github_not_connected',
+                message: 'GitHub is not connected to your account yet'
             })
         }
 
@@ -32,7 +34,8 @@ export const githubSync = async (req: Request, res: Response, next: NextFunction
 
             if (!codingCategory) {
                 return res.status(400).json({
-                    "message": "No coding category found"
+                    code: 'no_coding_category',
+                    message: 'You need a habit named “coding” for your commits to land in'
                 })
             }
 
@@ -43,7 +46,8 @@ export const githubSync = async (req: Request, res: Response, next: NextFunction
 
             if (!accessToken) {
                 return res.status(400).json({
-                    message: 'GitHub token unavailable — please reconnect GitHub'
+                    code: 'github_token_unavailable',
+                    message: 'Your GitHub authorisation has expired'
                 })
             }
 
@@ -91,13 +95,43 @@ export const getGithubStatus = async (req: Request, res: Response, next: NextFun
 export const disconnectGithub = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.id
-        await db.delete(betterAuthAccounts)
+        const githubAccounts = await db.select()
+            .from(betterAuthAccounts)
             .where(and(
                 eq(betterAuthAccounts.userId, userId),
                 eq(betterAuthAccounts.providerId, 'github')
             ))
+
+        if (githubAccounts.length === 0) {
+            return res.status(200).json({ message: 'GitHub disconnected' })
+        }
+
+        for (const account of githubAccounts) {
+            await auth.api.unlinkAccount({
+                body: { accountId: account.id },
+                headers: req.headers as Record<string, string>,
+            })
+        }
+
         return res.status(200).json({ message: 'GitHub disconnected' })
     } catch (error) {
+        
+        if (error instanceof APIError) {
+            const code = (error.body as { code?: string } | undefined)?.code
+            if (code === 'FAILED_TO_UNLINK_LAST_ACCOUNT') {
+                return res.status(400).json({
+                    message: 'GitHub is your only sign-in method — set a password before disconnecting it'
+                })
+            }
+            if (code === 'SESSION_NOT_FRESH') {
+                return res.status(403).json({
+                    message: 'Please sign in again before disconnecting GitHub'
+                })
+            }
+            return res.status(error.statusCode || 400).json({
+                message: error.body?.message ?? 'Could not disconnect GitHub'
+            })
+        }
         next(error)
     }
 }

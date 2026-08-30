@@ -26,6 +26,11 @@ export interface FriendRequest {
   status: 'pending' | 'accepted' | 'declined'
   createdAt: string
   updatedAt: string
+  requester: {
+    id: string
+    name: string
+    image: string | null
+  }
 }
 
 export interface SearchUser {
@@ -44,4 +49,8 @@ export interface SharedGoal {
   status: 'pending' | 'accepted' | 'declined'
   createdAt: string
   updatedAt: string
+  isInitiator: boolean
+  partner: { id: string; name: string; image: string | null } | null
+  myCategory: { id: string; name: string } | null
+  partnerCategory: { id: string; name: string } | null
 }

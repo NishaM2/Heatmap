@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   ArrowRight,
   BarChart3,
+  ChevronDown,
   Flame,
   GitBranch,
   LayoutGrid,
@@ -40,6 +41,7 @@ const NAV_LINKS = [
   { label: 'Home', href: '#home' },
   { label: 'How', href: '#how-it-works' },
   { label: 'Features', href: '#features' },
+  { label: 'FAQ', href: '#faq' },
 ]
 
 // how it works 
@@ -354,7 +356,159 @@ const Features = () => {
   )
 }
 
-// footer 
+// faq
+
+const FAQS = [
+  {
+    q: 'What does one square actually mean?',
+    a: 'One square is one day of one habit. Rather than ticking a box, you pick how hard the day was — Light, Moderate, Hard or Intense — and the square darkens to match. A year of squares ends up showing not just whether you showed up, but how much you put in.',
+  },
+  {
+    q: 'How many habits can I track?',
+    a: 'Up to five. That cap is deliberate: five is enough to cover the things you actually care about and few enough that the grid stays readable. You can also mark habits as “core”, and only those count toward whether a day is complete.',
+  },
+  {
+    q: 'How does the GitHub sync work?',
+    a: 'Connect GitHub from Settings and your commit history fills in a habit named “coding”, once a night. More commits on a day means a darker square. It only ever writes to that one habit, so nothing you have logged by hand elsewhere is touched.',
+  },
+  {
+    q: 'Do I need a GitHub account to use HeatTrack?',
+    a: 'No. An email address and password is all you need, and everything except the commit sync works exactly the same. GitHub is there for people who want their coding days filled in automatically instead of logged by hand.',
+  },
+  {
+    q: 'What keeps a streak alive?',
+    a: 'Logging any effort on a day keeps it going, and skipping a day ends it. Both your current streak and your longest streak are tracked separately, so a bad week costs you the current run but never erases your best one. Milestones land at 7, 30, 60, 100 and 365 days.',
+  },
+  {
+    q: 'What are shared goals?',
+    a: 'Pick a habit, pair it with a friend, and you both work the same goal for the year. The comparison view puts your two grids side by side so you can see how the other person is doing without either of you having to ask.',
+  },
+  {
+    q: 'Who can see my grid?',
+    a: 'Nothing is public. Friends you have accepted can see your habits and streaks, which is the point of comparing — so only accept people you actually want watching. The share image is a file you export yourself and post wherever you choose.',
+  },
+]
+
+const FaqRow = ({
+  item,
+  index,
+  open,
+  onToggle,
+}: {
+  item: { q: string; a: string }
+  index: number
+  open: boolean
+  onToggle: () => void
+}) => (
+  <div className="border-b border-slate-200 last:border-b-0">
+    <h3>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={`faq-answer-${index}`}
+        id={`faq-question-${index}`}
+        className="flex w-full items-center justify-between gap-5 px-6 py-5 text-left transition-colors hover:bg-neutral-50 sm:px-7"
+      >
+        <span className="text-[16px] font-semibold tracking-[-0.01em] text-black sm:text-[17px]">
+          {item.q}
+        </span>
+        <ChevronDown
+          aria-hidden
+          className={`h-4.5 w-4.5 shrink-0 text-black/40 transition-transform duration-300 motion-reduce:transition-none ${
+            open ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+    </h3>
+
+    {/* 0fr -> 1fr animates to the answer's natural height without measuring it */}
+    <div
+      id={`faq-answer-${index}`}
+      role="region"
+      aria-labelledby={`faq-question-${index}`}
+      className="grid transition-all duration-300 ease-out motion-reduce:transition-none"
+      style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
+    >
+      <div className="overflow-hidden">
+        <p className="px-6 pb-5 pr-12 text-[14.5px] leading-relaxed text-black/60 sm:px-7 sm:pr-16">
+          {item.a}
+        </p>
+      </div>
+    </div>
+  </div>
+)
+
+const Faq = () => {
+  const { ref, shown } = useReveal<HTMLElement>()
+  const [openIndex, setOpenIndex] = useState<number | null>(0)
+
+  return (
+    <section id="faq" ref={ref} className="relative px-4 py-16 sm:px-6 md:py-28">
+      <div className="mx-auto w-full max-w-3xl">
+        <h2
+          className="text-center font-Hero text-[38px] leading-[1.1] tracking-[-0.01em] text-black sm:text-[52px]"
+          style={{
+            opacity: shown ? 1 : 0,
+            transform: shown ? 'none' : 'translateY(16px)',
+            transition: 'opacity 600ms ease, transform 600ms ease',
+          }}
+        >
+          Questions, answered
+        </h2>
+
+        <p
+          className="mx-auto mt-4 max-w-xl text-center text-[16px] leading-relaxed text-black/60 sm:text-[17px]"
+          style={{
+            opacity: shown ? 1 : 0,
+            transform: shown ? 'none' : 'translateY(16px)',
+            transition: 'opacity 600ms ease 100ms, transform 600ms ease 100ms',
+          }}
+        >
+          The things people ask before they start tracking.
+        </p>
+
+        <div
+          className="mt-12 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_28px_-16px_rgba(15,23,42,0.16)] sm:mt-14"
+          style={{
+            opacity: shown ? 1 : 0,
+            transform: shown ? 'none' : 'translateY(24px)',
+            transition: 'opacity 600ms ease 200ms, transform 600ms ease 200ms',
+          }}
+        >
+          {FAQS.map((item, i) => (
+            <FaqRow
+              key={item.q}
+              item={item}
+              index={i}
+              open={openIndex === i}
+              onToggle={() => setOpenIndex(openIndex === i ? null : i)}
+            />
+          ))}
+        </div>
+
+        <p
+          className="mt-8 text-center text-[14.5px] text-black/50"
+          style={{
+            opacity: shown ? 1 : 0,
+            transition: 'opacity 600ms ease 400ms',
+          }}
+        >
+          Still curious?{' '}
+          <Link
+            to="/register"
+            className="font-medium text-black/75 underline underline-offset-4 transition-colors hover:text-black"
+          >
+            Make an account
+          </Link>{' '}
+          — the grid explains itself pretty quickly.
+        </p>
+      </div>
+    </section>
+  )
+}
+
+// footer
 
 const FOOTER_COLUMNS = [
   {
@@ -362,6 +516,7 @@ const FOOTER_COLUMNS = [
     links: [
       { label: 'How it works', to: '#how-it-works', internal: false },
       { label: 'Features', to: '#features', internal: false },
+      { label: 'FAQ', to: '#faq', internal: false },
     ],
   },
   {
@@ -614,6 +769,7 @@ export default function LandingPage() {
       <div className="relative z-10">
         <HowItWorks />
         <Features />
+        <Faq />
         <Footer />
       </div>
     </div>

@@ -1,6 +1,6 @@
-import { eq, and, or } from 'drizzle-orm'
+import { eq, and, or, inArray } from 'drizzle-orm'
 import { db } from '../db'
-import { sharedGoals, categories, friendships } from '../db/schema'
+import { sharedGoals, categories, friendships, betterAuthUsers } from '../db/schema'
 import { getLogsForYear } from './log.service'
 import { sendNotification } from '../lib/socket'
 
@@ -62,7 +62,49 @@ export const getSharedGoals = async (userId: string) => {
             eq(sharedGoals.initiatorId, userId),
             eq(sharedGoals.receiverId, userId)
         ))
-    return goals
+
+    if (goals.length === 0) return []
+
+    const partnerIds = [...new Set(
+        goals.map(g => (g.initiatorId === userId ? g.receiverId : g.initiatorId))
+    )]
+    const categoryIds = [...new Set(
+        goals.flatMap(g => [g.initiatorCategoryId, g.receiverCategoryId])
+            .filter((id): id is string => !!id)
+    )]
+
+    const [partnerRows, categoryRows] = await Promise.all([
+        db.select({
+            id: betterAuthUsers.id,
+            name: betterAuthUsers.name,
+            image: betterAuthUsers.image,
+        })
+            .from(betterAuthUsers)
+            .where(inArray(betterAuthUsers.id, partnerIds)),
+        categoryIds.length
+            ? db.select({ id: categories.id, name: categories.name })
+                .from(categories)
+                .where(inArray(categories.id, categoryIds))
+            : Promise.resolve([]),
+    ])
+
+    const partnersById = new Map(partnerRows.map(p => [p.id, p]))
+    const categoriesById = new Map(categoryRows.map(c => [c.id, c]))
+
+    return goals.map(goal => {
+        const isInitiator = goal.initiatorId === userId
+        const partnerId = isInitiator ? goal.receiverId : goal.initiatorId
+        const myCategoryId = isInitiator ? goal.initiatorCategoryId : goal.receiverCategoryId
+        const theirCategoryId = isInitiator ? goal.receiverCategoryId : goal.initiatorCategoryId
+
+        return {
+            ...goal,
+            isInitiator,
+            partner: partnersById.get(partnerId) ?? null,
+            myCategory: myCategoryId ? categoriesById.get(myCategoryId) ?? null : null,
+            partnerCategory: theirCategoryId ? categoriesById.get(theirCategoryId) ?? null : null,
+        }
+    })
 }
 
 export const acceptSharedGoal = async (userId: string, sharedGoalId: string, receiverCategoryId: string) => {

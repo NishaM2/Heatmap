@@ -2,7 +2,6 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { db } from '../db'
 import * as schema from '../db/schema'
-import { sendVerificationEmail } from '../lib/email'
 
 const clientURL = process.env.CLIENT_URL || 'http://localhost:5173'
 const serverURL = process.env.BETTER_AUTH_URL || 'http://localhost:3000'
@@ -61,16 +60,10 @@ export const auth = betterAuth({
         enabled: true,
     },
 
-    emailVerification: {
-        sendOnSignUp: true,
-        autoSignInAfterVerification: true,
-        expiresIn: 3600,
-        sendVerificationEmail,
-    },
-
     socialProviders,
 
     account: {
+        identityStrategy: 'provider-id',
         encryptOAuthTokens: true,
         accountLinking: {
             enabled: true,

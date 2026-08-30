@@ -18,6 +18,7 @@ import { createServer } from 'http'
 import { initSocket } from './lib/socket'
 import rateLimit from 'express-rate-limit'
 import shareRouter from './api/share.routes'
+import accountRouter from './api/account.routes'
 import { CLIENT_URL, SERVER_URL } from './lib/config'
 
 const app = express()
@@ -40,7 +41,7 @@ app.use(helmet({
 }))
 
 app.use(cors ({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: CLIENT_URL,
     credentials: true
 }))
 
@@ -86,6 +87,7 @@ app.use(globalLimiter)
 
 app.use('/api/auth/sign-in/email', authLimiter)
 app.use('/api/auth/sign-up/email', authLimiter)
+app.use('/api/account/set-password', authLimiter)
 
 app.get('/api/auth-providers', (req, res) => {
     res.json({ providers: enabledSocialProviders })
@@ -100,28 +102,6 @@ app.get('/api/health', (req, res) => {
     })
 })
 
-
-app.get('/api/auth/signin/github', async (req, res) => {
-  try {
-    const result = await auth.api.signInSocial({
-      body: {
-        provider: 'github' as const,
-        callbackURL: `${CLIENT_URL}/dashboard`
-      },
-      asResponse: true
-    });
-    result.headers.forEach((value: string, key: string) => {
-      res.setHeader(key, value);
-    });
-    const data = await result.json() as { url?: string };
-    if (data.url) return res.redirect(data.url);
-    res.json(data);
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-
 // Better auth handler
 app.all('/api/auth/*splat', toNodeHandler(auth))
 
@@ -129,6 +109,7 @@ app.use('/api/categories', categoryRouter)
 app.use('/api/logs', logRouter)
 app.use('/api/stats', statsRouter)
 app.use('/api/github', githubRouter)
+app.use('/api/account', accountRouter)
 app.use('/api/friends', friendRouter)
 app.use('/api/shared-goals', sharedGoalRouter)
 app.use('/api/share', shareLimiter, shareRouter)

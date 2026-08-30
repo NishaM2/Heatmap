@@ -2,9 +2,6 @@ import { API_URL } from "@/lib/config"
 
 const BASE_URL = `${API_URL}/api`
 
-// Not every response is JSON: a proxy 502 returns HTML, a 204 returns nothing.
-// Blindly calling response.json() turns those into "Unexpected token '<'", which
-// is what the user ends up seeing instead of the real error.
 const parseBody = async (response: Response) => {
     if (response.status === 204) return null
     const text = await response.text()
@@ -14,6 +11,11 @@ const parseBody = async (response: Response) => {
     } catch {
         return null
     }
+}
+
+export interface ApiError extends Error {
+    code?: string
+    status?: number
 }
 
 export const request = async (endpoint: string, options: RequestInit = {}) => {
@@ -29,9 +31,13 @@ export const request = async (endpoint: string, options: RequestInit = {}) => {
 
     if(!response.ok) {
         const body = await parseBody(response)
-        throw new Error(
+    
+        const error: ApiError = new Error(
             body?.message || `Request failed (${response.status} ${response.statusText})`.trim()
         )
+        error.code = body?.code
+        error.status = response.status
+        throw error
     }
     return parseBody(response)
 }
@@ -144,6 +150,17 @@ export const friendApi = {
 }
 
 //github
+export const accountApi = {
+    status: (): Promise<{ hasPassword: boolean; providers: string[] }> =>
+        request('/account/status'),
+
+    setPassword: (newPassword: string) =>
+        request('/account/set-password', {
+            method: 'POST',
+            body: JSON.stringify({ newPassword }),
+        }),
+}
+
 export const githubApi = {
     sync: () => 
         request('/github/sync', { 

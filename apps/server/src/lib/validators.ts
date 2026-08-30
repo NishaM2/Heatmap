@@ -63,9 +63,6 @@ export const insertSharedGoalSchema = createInsertSchema(sharedGoals, {
 
 export const updateSharedGoalSchema = insertSharedGoalSchema.partial()
 
-//route params and query strings
-//every :id / :categoryId lands in a uuid column, so an unvalidated value makes
-//Postgres raise 22P02 and surface as a 500 instead of a 400
 export const idParamSchema = z.object({
     id: z.uuid('Invalid id'),
 })
@@ -102,6 +99,12 @@ export const registerSchema = z.object({
         .max(20, ' Password too long'),
 })
 
+export const setPasswordSchema = z.object({
+    newPassword: z.string()
+        .min(8, 'Password must be at least 8 characters')
+        .max(128, 'Password cannot exceed 128 characters'),
+})
+
 export const loginSchema = z.object({
     email: z.string().email('Invalid email'),
     password: z.string().min(1, 'password is required'),
@@ -116,3 +119,4 @@ export type InsertSharedGoal = z.infer<typeof insertSharedGoalSchema>
 export type UpdateSharedGoal = z.infer<typeof updateSharedGoalSchema>
 export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>
+export type SetPasswordInput = z.infer<typeof setPasswordSchema>
