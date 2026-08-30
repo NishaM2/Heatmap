@@ -1,14 +1,11 @@
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { CheckmarkCircle02Icon, InformationCircleIcon, Alert02Icon, MultiplicationSignCircleIcon, Loading03Icon } from "@hugeicons/core-free-icons"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="light"
       className="toaster group"
       icons={{
         success: (
@@ -29,15 +26,25 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
+          "--normal-bg": "#ffffff",
+          "--normal-text": "#171717",
+          "--normal-border": "#e5e5e5",
+          "--success-bg": "#ffffff",
+          "--success-text": "#171717",
+          "--success-border": "#e5e5e5",
+          "--error-bg": "#ffffff",
+          "--error-text": "#171717",
+          "--error-border": "#e5e5e5",
+          "--border-radius": "0.5rem",
         } as React.CSSProperties
       }
       toastOptions={{
         classNames: {
-          toast: "cn-toast",
+          toast:
+            "cn-toast !bg-white !text-neutral-900 !border-neutral-200 !shadow-sm !font-sans",
+          title: "!text-sm !font-medium !text-neutral-900",
+          description: "!text-xs !text-neutral-500",
+          icon: "!text-neutral-900",
         },
       }}
       {...props}

@@ -1,20 +1,14 @@
 import { useState } from 'react'
+import { AlertCircle, Star } from 'lucide-react'
 import { useCreateCategory } from '@/hooks/useCategories'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
-const PRESET_COLORS = [
-  '#22c55e', '#3b82f6', '#f97316', '#ef4444',
-  '#a855f7', '#ec4899', '#14b8a6', '#eab308',
-]
+export const DEFAULT_CATEGORY_COLOR = '#22c55e'
 
 interface CreateCategoryModalProps {
   open: boolean
@@ -23,84 +17,113 @@ interface CreateCategoryModalProps {
 
 const CreateCategoryModal = ({ open, onClose }: CreateCategoryModalProps) => {
   const [name, setName] = useState('')
-  const [color, setColor] = useState('#22c55e')
   const [isCore, setIsCore] = useState(false)
   const [error, setError] = useState('')
   const createCategory = useCreateCategory()
 
-  const handleSave = async () => {
-    if (!name.trim()) {
-      setError('Name is required')
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const trimmed = name.trim()
+    if (!trimmed) {
+      setError('Give your habit a name')
       return
     }
     try {
-      await createCategory.mutateAsync({ name, color, isCore })
+      await createCategory.mutateAsync({
+        name: trimmed,
+        color: DEFAULT_CATEGORY_COLOR,
+        isCore,
+      })
       setName('')
-      setColor('#22c55e')
       setIsCore(false)
       setError('')
       onClose()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create category')
+      setError(err instanceof Error ? err.message : 'Could not create this habit')
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Create Category</DialogTitle>
+      <DialogContent className="border-neutral-200 bg-white p-6 font-sans text-neutral-900 sm:max-w-md">
+        <DialogHeader className="space-y-1">
+          <DialogTitle className="font-Hero text-[22px] font-normal leading-none tracking-tight">
+            New habit
+          </DialogTitle>
+          <p className="text-xs text-neutral-500">
+            You can track up to five habits at a time.
+          </p>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label>Name</Label>
-            <Input
-              placeholder="Coding, Fitness, Reading..."
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={30}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Color</Label>
-            <div className="flex gap-2 flex-wrap">
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c}
-                  className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110
-                    ${color === c ? 'border-foreground scale-110' : 'border-transparent'}
-                  `}
-                  style={{ backgroundColor: c }}
-                  onClick={() => setColor(c)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          <div className="space-y-1.5">
+            <label htmlFor="category-name" className="block text-xs font-medium">
+              Name
+            </label>
             <input
-              type="checkbox"
-              id="isCore"
-              checked={isCore}
-              onChange={(e) => setIsCore(e.target.checked)}
-              className="h-4 w-4"
+              id="category-name"
+              value={name}
+              onChange={(e) => { setName(e.target.value); setError('') }}
+              placeholder="Coding, Reading, Workout…"
+              maxLength={30}
+              autoFocus
+              required
+              className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm text-neutral-900 shadow-sm outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
             />
-            <Label htmlFor="isCore" className="cursor-pointer">
-              Core category (counts toward overall heatmap)
-            </Label>
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
+          <button
+            type="button"
+            onClick={() => setIsCore((v) => !v)}
+            aria-pressed={isCore}
+            className={`flex w-full items-start gap-3 rounded-md border p-3 text-left transition-colors ${
+              isCore
+                ? 'border-neutral-900 bg-neutral-50'
+                : 'border-neutral-200 hover:bg-neutral-50'
+            }`}
+          >
+            <span
+              className={`mt-px grid size-5 shrink-0 place-items-center rounded ${
+                isCore ? 'bg-neutral-900 text-white' : 'border border-neutral-300 text-transparent'
+              }`}
+            >
+              <Star className={`size-3 ${isCore ? 'fill-white' : ''}`} />
+            </span>
+            <span>
+              <span className="block text-sm font-medium">Core habit</span>
+              <span className="mt-0.5 block text-xs text-neutral-500">
+                Counts toward the combined grid on your dashboard.
+              </span>
+            </span>
+          </button>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave} disabled={createCategory.isPending}>
-            {createCategory.isPending ? 'Creating...' : 'Create'}
-          </Button>
-        </DialogFooter>
+          {error && (
+            <p
+              role="alert"
+              className="flex items-start gap-1.5 rounded-md bg-red-50 px-2.5 py-2 text-xs text-red-600"
+            >
+              <AlertCircle className="mt-px size-3.5 shrink-0" />
+              {error}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-9 rounded-md border border-neutral-200 px-4 text-sm font-medium transition-colors hover:bg-neutral-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={createCategory.isPending}
+              className="h-9 rounded-md bg-neutral-900 px-4 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-60"
+            >
+              {createCategory.isPending ? 'Creating…' : 'Create habit'}
+            </button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   )

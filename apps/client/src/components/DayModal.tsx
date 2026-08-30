@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Trash2 } from 'lucide-react'
 import { useUIStore } from '@/store/uiStore'
 import { useUpsertLog, useDayLog, useDeleteLog } from '@/hooks/useLogs'
 import { useCategories } from '@/hooks/useCategories'
@@ -8,18 +9,18 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import type { Category } from '@/types'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const EFFORT_LEVELS = [
-  { level: 1, label: 'Light', color: 'bg-green-200' },
-  { level: 2, label: 'Moderate', color: 'bg-green-400' },
-  { level: 3, label: 'Hard', color: 'bg-green-600' },
-  { level: 4, label: 'Intense', color: 'bg-green-800' },
+  { level: 1, label: 'Light', color: '#cbd5e1' },
+  { level: 2, label: 'Moderate', color: '#94a3b8' },
+  { level: 3, label: 'Hard', color: '#475569' },
+  { level: 4, label: 'Intense', color: '#0f172a' },
 ]
+
+const MAX_NOTE = 140
 
 const DayModal = () => {
   const { isDayModalOpen, selectedDate, selectedCategoryId, closeDayModal } = useUIStore()
@@ -31,6 +32,7 @@ const DayModal = () => {
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const { confirm, dialog } = useConfirm()
 
   useEffect(() => {
     if (existingLog) {
@@ -67,133 +69,150 @@ const DayModal = () => {
   if (!selectedDate) return null
 
   const isFutureDate = checkIsFuture(selectedDate)
+  const viewing = existingLog && !isEditing
 
   return (
     <Dialog open={isDayModalOpen} onOpenChange={closeDayModal}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-base">
+      <DialogContent className="border-neutral-200 bg-white p-6 font-sans text-neutral-900 sm:max-w-md">
+        <DialogHeader className="space-y-1.5">
+          <DialogTitle className="font-Hero text-[20px] font-normal leading-tight tracking-tight">
             {formatDateLabel(selectedDate)}
           </DialogTitle>
           {category && (
-            <div className="flex items-center gap-2 mt-1">
-              <div
-                className="h-2.5 w-2.5 rounded-full"
+            <div className="flex items-center gap-2">
+              <span
+                className="size-2.5 rounded-full"
                 style={{ backgroundColor: category.color }}
               />
-              <span className="text-sm text-muted-foreground">{category.name}</span>
+              <span className="text-xs text-neutral-500">{category.name}</span>
             </div>
           )}
         </DialogHeader>
 
         {isFutureDate ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Cannot log future dates
+          <p className="py-8 text-center text-sm text-neutral-500">
+            You can't log a day that hasn't happened yet.
           </p>
-        ) : existingLog && !isEditing ? (
-          // VIEW MODE — already filled
-          <div className="space-y-4 py-2">
-            <div>
-              <p className="text-sm font-medium mb-2">Effort Level</p>
-              <div className="grid grid-cols-4 gap-2">
-                {EFFORT_LEVELS.map(({ level, label, color }) => (
-                  <div
-                    key={level}
-                    className={`
-                      rounded-lg p-3 text-center border-2
-                      ${effortLevel === level ? 'border-primary scale-105' : 'border-transparent opacity-40'}
-                    `}
-                  >
-                    <div className={`h-6 w-full rounded ${color} mb-1`} />
-                    <span className="text-xs font-medium">{label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {note && (
-              <div>
-                <p className="text-sm font-medium mb-1">Note</p>
-                <p className="text-sm text-muted-foreground bg-muted rounded-lg px-3 py-2">
-                  {note}
-                </p>
-              </div>
-            )}
-
-            {!note && (
-              <p className="text-xs text-muted-foreground">No note added</p>
-            )}
-          </div>
         ) : (
-          // edit mode
-          <div className="space-y-4 py-2">
+          <div className="mt-4 space-y-4">
             <div>
-              <p className="text-sm font-medium mb-2">Effort Level</p>
+              <p className="mb-2 text-xs font-medium">Effort level</p>
               <div className="grid grid-cols-4 gap-2">
-                {EFFORT_LEVELS.map(({ level, label, color }) => (
-                  <button
-                    key={level}
-                    onClick={() => setEffortLevel(level)}
-                    className={`
-                      rounded-lg p-3 text-center border-2 transition-all
-                      ${effortLevel === level
-                        ? 'border-primary scale-105'
-                        : 'border-transparent hover:border-muted-foreground/30'
-                      }
-                    `}
-                  >
-                    <div className={`h-6 w-full rounded ${color} mb-1`} />
-                    <span className="text-xs font-medium">{label}</span>
-                  </button>
-                ))}
+                {EFFORT_LEVELS.map(({ level, label, color }) => {
+                  const on = effortLevel === level
+                  const interactive = !viewing
+                  return (
+                    <button
+                      key={level}
+                      type="button"
+                      disabled={!interactive}
+                      onClick={interactive ? () => setEffortLevel(level) : undefined}
+                      aria-pressed={on}
+                      className={`rounded-md border p-2 text-center transition-colors ${
+                        on
+                          ? 'border-neutral-900 bg-neutral-50'
+                          : interactive
+                            ? 'border-neutral-200 hover:bg-neutral-50'
+                            : 'border-neutral-200 opacity-40'
+                      }`}
+                    >
+                      <span
+                        className="mb-1.5 block h-5 w-full rounded"
+                        style={{ backgroundColor: color }}
+                      />
+                      <span className="block text-[11px] font-medium">{label}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
-            <div>
-              <p className="text-sm font-medium mb-2">
-                Note
-                <span className="text-xs text-muted-foreground ml-2">
-                  {note.length}/140
-                </span>
-              </p>
-              <Textarea
-                placeholder="What did you work on today?"
-                value={note}
-                onChange={(e) => setNote(e.target.value.slice(0, 140))}
-                rows={3}
-                className="resize-none"
-              />
+            {viewing ? (
+              <div>
+                <p className="mb-1.5 text-xs font-medium">Note</p>
+                {note ? (
+                  <p className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
+                    {note}
+                  </p>
+                ) : (
+                  <p className="text-xs text-neutral-400">No note added.</p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div className="mb-1.5 flex items-baseline justify-between">
+                  <label htmlFor="day-note" className="text-xs font-medium">Note</label>
+                  <span className="text-[11px] tabular-nums text-neutral-400">
+                    {note.length}/{MAX_NOTE}
+                  </span>
+                </div>
+                <textarea
+                  id="day-note"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE))}
+                  placeholder="What did you work on?"
+                  rows={3}
+                  className="w-full resize-none rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
+                />
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-1">
+              {existingLog && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: 'Delete this log?',
+                      description: 'This day will go back to being empty on your grid.',
+                      confirmLabel: 'Delete',
+                      destructive: true,
+                    })
+                    if (!ok) return
+                    await deleteLog.mutateAsync(existingLog.id)
+                    closeDayModal()
+                  }}
+                  disabled={deleteLog.isPending}
+                  aria-label="Delete this log"
+                  className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-neutral-200 text-neutral-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              )}
+
+              <div className="ml-auto flex gap-2">
+                <button
+                  type="button"
+                  onClick={closeDayModal}
+                  className="h-9 rounded-md border border-neutral-200 px-4 text-sm font-medium transition-colors hover:bg-neutral-100"
+                >
+                  Close
+                </button>
+
+                {viewing ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    className="h-9 rounded-md bg-neutral-900 px-4 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
+                  >
+                    Edit
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={!effortLevel || loading}
+                    className="h-9 rounded-md bg-neutral-900 px-4 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+                  >
+                    {loading ? 'Saving…' : 'Save'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
-
-        <DialogFooter>
-          {existingLog && !isEditing && !isFutureDate && (
-            <Button variant="outline" onClick={() => setIsEditing(true)}>
-              Edit
-            </Button>
-          )}
-          {existingLog && !isFutureDate && (
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                await deleteLog.mutateAsync(existingLog.id)
-                closeDayModal()
-              }}
-            >
-              Delete
-            </Button>
-          )}
-          <Button variant="outline" onClick={closeDayModal}>
-            Cancel
-          </Button>
-          {(!existingLog || isEditing) && !isFutureDate && (
-            <Button onClick={handleSave} disabled={!effortLevel || loading}>
-              {loading ? 'Saving...' : 'Save'}
-            </Button>
-          )}
-        </DialogFooter>
       </DialogContent>
+      {dialog}
     </Dialog>
   )
 }
