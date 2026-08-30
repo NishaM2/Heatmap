@@ -87,7 +87,6 @@ const statsFor = (logs: YearLog[], year: number) => {
 }
 
 // Heatmap 
-
 const MiniHeatmap = ({
   year,
   logs,
@@ -107,7 +106,7 @@ const MiniHeatmap = ({
   }, [logs])
 
   return (
-    <div className="overflow-x-auto pb-1">
+    <div className="overflow-x-auto pb-2 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
       <div className="min-w-150">
         <div className="mb-1.5 flex text-[10px] text-neutral-400">
           {months.map((m, i) => (
@@ -288,7 +287,7 @@ const ComparisonPage = () => {
               ].map((p) => (
                 <section
                   key={p.who}
-                  className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm"
+                  className="min-w-0 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm"
                 >
                   <div className="mb-4 flex items-center gap-3">
                     <Avatar className="size-8">

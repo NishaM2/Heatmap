@@ -2,118 +2,152 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { authClient } from '@/lib/authClient'
-import { Eye, EyeOff } from 'lucide-react'
-import AuthShell, {
-  FormError,
-  OrDivider,
-  SocialRow,
-  SubmitButton,
-  fieldClass,
-  labelClass,
-} from '@/components/AuthShell'
+import { Activity, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import PageBackdrop from '@/components/PageBackdrop'
+import SocialAuthButtons from '@/components/SocialAuthButtons'
 import { oauthCallbackURL, useAuthProviders, type SocialProvider } from '@/lib/authProviders'
+
+const inputClass =
+  'h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm text-neutral-900 shadow-sm outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:opacity-60'
 
 const LoginPage = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [revealed, setRevealed] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
   const providers = useAuthProviders()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setError('')
+    setError(null)
     setLoading(true)
     try {
       await login(email, password)
       navigate('/dashboard')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setLoading(false)
     }
   }
 
   const handleSocial = async (provider: SocialProvider) => {
-    setError('')
+    setError(null)
     const { error: socialError } = await authClient.signIn.social({
       provider,
       callbackURL: oauthCallbackURL('/dashboard'),
     })
     if (socialError) {
-      setError(socialError.message || `Could not sign in with ${provider}`)
+      setError(socialError.message ?? `Could not sign in with ${provider}`)
     }
   }
 
   return (
-    <AuthShell
-      title="Welcome back"
-      subtitle="Please enter your details to sign in."
-      footer={
-        <>
-          Don&apos;t have an account?{' '}
-          <Link to="/register" className="font-medium text-[#111318] underline underline-offset-2 hover:text-[#2b7ff5]">
-            Sign up
-          </Link>
-        </>
-      }
-    >
-      <SocialRow providers={providers} onSelect={handleSocial} disabled={loading} />
+    <div className="relative min-h-screen bg-white p-3 font-sans text-neutral-900 antialiased">
+      <PageBackdrop />
 
-      <OrDivider />
+      <div className="relative z-10 flex min-h-[calc(100vh-1.5rem)] flex-col items-center justify-center px-5 py-12">
 
-      <form onSubmit={handleSubmit} noValidate={false}>
-        <div>
-          <label htmlFor="email" className={labelClass}>Email</label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={loading}
-            className={fieldClass}
-          />
+      <Link to="/" className="mb-6 inline-flex items-center gap-2">
+        <span className="grid size-7 place-items-center rounded-md bg-neutral-900">
+          <Activity className="size-4 text-white" />
+        </span>
+        <span className="font-heading text-sm font-semibold tracking-tight">HeatTrack</span>
+      </Link>
+
+      <div className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <div className="mb-5 space-y-1">
+          <h1 className="font-heading text-base font-semibold tracking-tight">Welcome back</h1>
+          <p className="text-xs text-neutral-500">
+            Sign in to pick up where your streak left off.
+          </p>
         </div>
 
-        <div className="mt-4">
-          <label htmlFor="password" className={labelClass}>Password</label>
-          <div className="relative">
+        <SocialAuthButtons providers={providers} onSelect={handleSocial} disabled={loading} />
+
+        <div className="my-4 flex items-center gap-3">
+          <span className="h-px flex-1 bg-neutral-200" />
+          <span className="text-[10px] uppercase tracking-wider text-neutral-500">or</span>
+          <span className="h-px flex-1 bg-neutral-200" />
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="block text-xs font-medium">Email</label>
             <input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              aria-invalid={error ? true : undefined}
               required
               disabled={loading}
-              className={`${fieldClass} pr-11`}
+              className={inputClass}
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-[#a3a9b3] transition hover:text-[#111318] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2b7ff5]"
-            >
-              {showPassword ? <EyeOff className="h-4.25 w-4.25" /> : <Eye className="h-4.25 w-4.25" />}
-            </button>
           </div>
-          <p className="mt-2 text-[12.5px] text-[#8a9099]">Must be at least 8 characters</p>
-        </div>
 
-        <FormError message={error} />
+          <div className="space-y-1.5">
+            <label htmlFor="password" className="block text-xs font-medium">Password</label>
+            <div className="relative">
+              <input
+                id="password"
+                type={revealed ? 'text' : 'password'}
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                aria-invalid={error ? true : undefined}
+                required
+                disabled={loading}
+                className={`${inputClass} pr-9`}
+              />
+              <button
+                type="button"
+                onClick={() => setRevealed((v) => !v)}
+                aria-label={revealed ? 'Hide password' : 'Show password'}
+                className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-neutral-400 transition-colors hover:text-neutral-900"
+              >
+                {revealed ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              </button>
+            </div>
+          </div>
 
-        <SubmitButton loading={loading} loadingLabel="Signing in...">
-          Sign in
-        </SubmitButton>
-      </form>
-    </AuthShell>
+          {error && (
+            <p
+              role="alert"
+              className="flex items-start gap-1.5 rounded-md bg-red-50 px-2.5 py-2 text-xs text-red-600"
+            >
+              <AlertCircle className="mt-px size-3.5 shrink-0" />
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="h-9 w-full rounded-md bg-neutral-900 text-sm font-medium text-white shadow-sm transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+
+        <p className="mt-5 text-center text-xs text-neutral-500">
+          New here?{' '}
+          <Link
+            to="/register"
+            className="font-medium text-neutral-900 underline underline-offset-4 hover:text-neutral-600"
+          >
+            Create an account
+          </Link>
+        </p>
+      </div>
+      </div>
+    </div>
   )
 }
 

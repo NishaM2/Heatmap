@@ -21,6 +21,8 @@ import AppNavbar from '@/components/AppNavbar'
 import AcceptGoalModal from '@/components/AcceptGoalModal'
 import SharedGoalModal from '@/components/SharedGoalModal'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 
 
 const SectionHead = ({
@@ -36,9 +38,7 @@ const SectionHead = ({
   </div>
 )
 
-// Visualises a friend's current streak. The API returns `currentStreak` only — there is no endpoint for another user's day-by-day logs — 
-// so this is a bar of that number, not a fabricated calendar.
-
+// Visualises a friend's current streak. 
 const StreakBar = ({ streak }: { streak: number }) => {
   const cells = 24
   const filled = Math.min(streak, cells)
@@ -72,6 +72,8 @@ const FriendsPage = () => {
   const [showAllRequests, setShowAllRequests] = useState(false)
   const [goalFor, setGoalFor] = useState<{ id: string; name: string } | null>(null)
   const [acceptingGoalId, setAcceptingGoalId] = useState<string | null>(null)
+  // Which users we've sent a request to in this session, so the row can confirm it.
+  const [sentTo, setSentTo] = useState<Set<string>>(new Set())
 
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -94,6 +96,7 @@ const FriendsPage = () => {
   const unfriend = useUnfriend()
   const acceptGoal = useAcceptSharedGoal()
   const declineGoal = useDeclineSharedGoal()
+  const { confirm, dialog } = useConfirm()
 
   const visibleRequests = showAllRequests ? requests : requests.slice(0, 3)
 
@@ -144,15 +147,33 @@ const FriendsPage = () => {
                     <AvatarFallback className="text-xs">{u.name?.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <p className="min-w-0 flex-1 truncate text-sm font-medium">{u.name}</p>
-                  <button
-                    type="button"
-                    onClick={() => sendRequest.mutate(u.id)}
-                    disabled={sendRequest.isPending}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-neutral-200 px-3 text-xs font-medium transition-colors hover:bg-neutral-100 disabled:opacity-60"
-                  >
-                    <UserPlus className="size-3.5" />
-                    Add
-                  </button>
+                  {sentTo.has(u.id) ? (
+                    <span className="inline-flex h-8 items-center gap-1.5 rounded-md bg-neutral-100 px-3 text-xs font-medium text-neutral-600">
+                      <Check className="size-3.5" />
+                      Request sent
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        sendRequest.mutate(u.id, {
+                          onSuccess: () => {
+                            setSentTo((prev) => new Set(prev).add(u.id))
+                            toast.success(`Friend request sent to ${u.name}`)
+                          },
+                          onError: (err: unknown) =>
+                            toast.error(
+                              err instanceof Error ? err.message : 'Could not send that request'
+                            ),
+                        })
+                      }
+                      disabled={sendRequest.isPending}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-neutral-200 px-3 text-xs font-medium transition-colors hover:bg-neutral-100 disabled:opacity-60"
+                    >
+                      <UserPlus className="size-3.5" />
+                      Add
+                    </button>
+                  )}
                 </div>
               ))
             )}
@@ -181,15 +202,15 @@ const FriendsPage = () => {
           visibleRequests.map((r) => (
             <RowShell key={r.id}>
               <Avatar className="size-9">
-                <AvatarFallback className="text-xs">?</AvatarFallback>
+                <AvatarImage src={r.requester?.image || ''} alt={r.requester?.name} />
+                <AvatarFallback className="text-xs">
+                  {r.requester?.name?.charAt(0).toUpperCase() ?? '?'}
+                </AvatarFallback>
               </Avatar>
 
               <div className="min-w-0 flex-1">
-                <p className="text-[15px] font-medium">Friend request</p>
-                {/* The API returns the friendship row only — no requester profile yet. */}
-                <p className="truncate text-xs text-neutral-500">
-                  From user {r.requesterId.slice(0, 8)}…
-                </p>
+                <p className="truncate text-[15px] font-medium">{r.requester?.name ?? 'Someone'}</p>
+                <p className="text-xs text-neutral-500">wants to be your friend</p>
               </div>
 
               <div className="flex shrink-0 gap-2">
@@ -259,10 +280,14 @@ const FriendsPage = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (confirm(`Remove ${f.user?.name} from your friends?`)) {
-                      unfriend.mutate(f.friendshipId)
-                    }
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: `Remove ${f.user?.name}?`,
+                      description: 'You will both stop seeing each other’s streaks. Any shared goals go with it.',
+                      confirmLabel: 'Remove friend',
+                      destructive: true,
+                    })
+                    if (ok) unfriend.mutate(f.friendshipId)
                   }}
                   disabled={unfriend.isPending}
                   aria-label={`Unfriend ${f.user?.name}`}
@@ -283,9 +308,28 @@ const FriendsPage = () => {
               const isReceiver = g.receiverId === user?.id
               return (
                 <RowShell key={g.id}>
-                  <p className="min-w-0 flex-1 text-[15px] font-medium capitalize">
-                    {g.status === 'pending' ? 'Pending invite' : `${g.status} goal`}
-                  </p>
+                  <Avatar className="size-9">
+                    <AvatarImage src={g.partner?.image || ''} alt={g.partner?.name} />
+                    <AvatarFallback className="text-xs">
+                      {g.partner?.name?.charAt(0).toUpperCase() ?? '?'}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[15px] font-medium">
+                      {g.myCategory?.name ?? g.partnerCategory?.name ?? 'Shared goal'}
+                      {g.partner && (
+                        <span className="font-normal text-neutral-500"> with {g.partner.name}</span>
+                      )}
+                    </p>
+                    <p className="truncate text-xs text-neutral-500">
+                      {g.status === 'accepted' && g.myCategory && g.partnerCategory
+                        ? `You: ${g.myCategory.name} · ${g.partner?.name ?? 'They'}: ${g.partnerCategory.name}`
+                        : g.status === 'pending'
+                          ? (g.isInitiator ? 'Waiting for them to accept' : 'Invited you — pick a habit to join')
+                          : 'Declined'}
+                    </p>
+                  </div>
 
                   <div className="flex shrink-0 gap-2">
                     {g.status === 'pending' && isReceiver && (
@@ -335,10 +379,14 @@ const FriendsPage = () => {
         />
       )}
 
+      {dialog}
+
       <AcceptGoalModal
         open={!!acceptingGoalId}
         onClose={() => setAcceptingGoalId(null)}
         isPending={acceptGoal.isPending}
+        partnerName={goals.find((g) => g.id === acceptingGoalId)?.partner?.name}
+        partnerCategoryName={goals.find((g) => g.id === acceptingGoalId)?.partnerCategory?.name}
         onAccept={(categoryId) => {
           if (!acceptingGoalId) return
           acceptGoal.mutate(

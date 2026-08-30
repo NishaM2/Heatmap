@@ -28,6 +28,7 @@ import PageBackdrop from '@/components/PageBackdrop'
 import AppNavbar from '@/components/AppNavbar'
 import DayModal from '@/components/DayModal'
 import CreateCategoryModal from '@/components/CreateCategoryModal'
+import { useConfirm } from '@/hooks/useConfirm'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -206,6 +207,7 @@ const HabitRow = ({ category, year }: { category: Category; year: number }) => {
   const { data: statsData } = useCategoryStats(category.id, String(year))
   const updateCategory = useUpdateCategory()
   const deleteCategory = useDeleteCategory()
+  const { confirm, dialog } = useConfirm()
   const stats = statsData as CategoryStats | undefined
 
   return (
@@ -260,10 +262,14 @@ const HabitRow = ({ category, year }: { category: Category; year: number }) => {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive"
-            onClick={() => {
-              if (confirm(`Delete "${category.name}" and all of its logs?`)) {
-                deleteCategory.mutate(category.id)
-              }
+            onClick={async () => {
+              const ok = await confirm({
+                title: `Delete “${category.name}”?`,
+                description: 'Every day you logged for this habit will be deleted too. This cannot be undone.',
+                confirmLabel: 'Delete habit',
+                destructive: true,
+              })
+              if (ok) deleteCategory.mutate(category.id)
             }}
           >
             <X className="mr-2 size-4" />
@@ -271,6 +277,7 @@ const HabitRow = ({ category, year }: { category: Category; year: number }) => {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      {dialog}
     </div>
   )
 }
