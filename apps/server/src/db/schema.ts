@@ -6,9 +6,6 @@ export const logSourceEnum = pgEnum('log_source', ['manual', 'github', 'fitbit']
 export const friendshipStatusEnum = pgEnum('friendship_status', ['pending', 'accepted', 'declined'])
 export const sharedGoalStatusEnum = pgEnum('shared_goal_status', ['pending', 'accepted', 'declined'])
 
-// Identity lives in the Better Auth tables below (`user` / `account` / `session`).
-// The old hand-rolled `users` table was superseded by them and is dropped in
-// migration 0002 — it also held OAuth tokens in plaintext.
 
 //categories
 export const categories = pgTable('categories', {
