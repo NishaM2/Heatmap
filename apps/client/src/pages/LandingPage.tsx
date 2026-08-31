@@ -129,7 +129,7 @@ const Connector = ({
   <svg
     aria-hidden="true"
     viewBox="0 0 72 40"
-    className={`hidden h-10 w-[72px] shrink-0 self-start md:block ${placeholder ? 'invisible' : ''}`}
+    className={`hidden h-10 w-18 shrink-0 self-start xl:block ${placeholder ? 'invisible' : ''}`}
     style={{ marginTop: 46 }}
   >
     <path
@@ -196,11 +196,11 @@ const HowItWorks = () => {
           Four steps between a blank grid and a year you can look back on.
         </p>
 
-        <div className="mt-14 flex flex-col items-stretch gap-6 sm:mt-16 md:flex-row md:items-start md:gap-0">
+        <div className="mt-14 grid grid-cols-1 gap-6 sm:mt-16 sm:grid-cols-2 xl:flex xl:flex-row xl:items-start xl:gap-0">
           {STEPS.map(({ Icon, title, body }, i) => (
-            <div key={title} className="contents md:flex md:flex-1 md:items-start">
+            <div key={title} className="contents xl:flex xl:flex-1 xl:items-start">
               <div
-                className="group h-full rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_28px_-16px_rgba(15,23,42,0.16)] transition-transform duration-300 hover:-translate-y-1.5 motion-reduce:transition-none md:flex-1"
+                className="group h-full rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_28px_-16px_rgba(15,23,42,0.16)] transition-transform duration-300 hover:-translate-y-1.5 motion-reduce:transition-none xl:flex-1"
                 style={{
                   opacity: shown ? 1 : 0,
                   transform: shown ? 'none' : 'translateY(24px)',
@@ -293,7 +293,7 @@ const FeatureCard = ({
 
       <div className="relative">
         <span className="grid h-10 w-10 place-items-center rounded-lg bg-neutral-100 text-black transition-colors duration-300 group-hover:bg-black group-hover:text-white motion-reduce:transition-none">
-          <Icon className="h-[18px] w-[18px]" />
+          <Icon className="h-4.5 w-4.5" />
         </span>
 
         <h3 className="mt-5 text-[16.5px] font-semibold tracking-[-0.01em] text-black">{title}</h3>
@@ -315,7 +315,7 @@ const AnimatedContainer = ({
   children: React.ReactNode
 }) => (
   <div
-    className={`motion-reduce:!translate-y-0 motion-reduce:!opacity-100 motion-reduce:!blur-none motion-reduce:transition-none ${className}`}
+    className={`motion-reduce:translate-y-0! motion-reduce:opacity-100! motion-reduce:blur-none! motion-reduce:transition-none ${className}`}
     style={{
       filter: shown ? 'blur(0px)' : 'blur(4px)',
       transform: shown ? 'translateY(0)' : 'translateY(-8px)',
@@ -345,7 +345,7 @@ const Features = () => {
         <AnimatedContainer
           shown={shown}
           delay={0.4}
-          className="grid grid-cols-1 divide-x divide-y divide-dashed divide-neutral-300 border border-dashed border-neutral-300 sm:grid-cols-2 md:grid-cols-3"
+          className="grid grid-cols-1 divide-x divide-y divide-dashed divide-neutral-300 border border-dashed border-neutral-300 sm:grid-cols-2 lg:grid-cols-3"
         >
           {FEATURES.map((feature) => (
             <FeatureCard key={feature.title} feature={feature} />
@@ -562,7 +562,7 @@ const Footer = () => {
                 HeatTrack
               </span>
             </Link>
-            <p className="mt-4 max-w-[15rem] text-[14px] leading-relaxed text-black/50">
+            <p className="mt-4 max-w-60 text-[14px] leading-relaxed text-black/50">
               A year-long heatmap for the habits you care about.
             </p>
           </div>
@@ -609,7 +609,7 @@ const Footer = () => {
       <div className="relative mx-auto w-full max-w-6xl pt-20">
         <h2
           aria-hidden="true"
-          className="select-none bg-gradient-to-b from-slate-900 via-slate-700 to-slate-400 bg-clip-text text-center font-bold leading-[0.78] tracking-[-0.05em] text-transparent"
+          className="select-none bg-linear-to-b from-slate-900 via-slate-700 to-slate-400 bg-clip-text text-center font-bold leading-[0.78] tracking-[-0.05em] text-transparent"
           style={{
             fontSize: 'clamp(3.5rem, 19vw, 16rem)',
             opacity: shown ? 0.55 : 0,
@@ -652,20 +652,37 @@ const Footer = () => {
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false)
 
+  useEffect(() => {
+    if (!menuOpen) return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [menuOpen])
+
   return (
     <div className="relative min-h-screen bg-white p-3">
       <PageBackdrop />
 
       <div className="relative z-10 flex min-h-[calc(100vh-1.5rem)] flex-col">
   
-        {/* ------------------------------------------------------- nav */}
+        {/* nav */}
         <header className="relative z-20 px-6 pt-6 sm:px-10 sm:pt-8">
           <nav className="flex items-center justify-between gap-6">
             <Link to="/" className="text-xl font-semibold tracking-tight text-black sm:text-[22px]">
               HeatTrack
             </Link>
 
-            <div className="hidden items-center gap-3 md:flex bg-white px-3 py-2 rounded-3xl">
+            {/* lg, not md, so tablets get the drawer rather than a cramped bar */}
+            <div className="hidden items-center gap-3 lg:flex bg-white px-3 py-2 rounded-3xl">
               {NAV_LINKS.map((l) => (
                 <a
                   key={l.href}
@@ -680,43 +697,93 @@ export default function LandingPage() {
             <div className="flex items-center gap-3">
               <Link
                 to="/login"
-                className="hidden rounded-lg border border-black/60 px-5 py-2 text-[14.5px] font-medium bg-black text-white transition hover:-translate-y-0.5 sm:block"
+                className="hidden rounded-lg border border-black/60 px-5 py-2 text-[14.5px] font-medium bg-black text-white transition hover:-translate-y-0.5 lg:block"
               >
                 Sign in
               </Link>
               <button
                 type="button"
-                onClick={() => setMenuOpen((v) => !v)}
-                aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                onClick={() => setMenuOpen(true)}
+                aria-label="Open menu"
                 aria-expanded={menuOpen}
-                className="rounded-lg p-2 text-white transition-colors hover:bg-white/15 md:hidden"
+                aria-controls="mobile-nav"
+                className="rounded-lg p-2 text-black/85 transition-colors hover:bg-neutral-100 lg:hidden"
               >
-                {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                <Menu className="h-5 w-5" />
               </button>
             </div>
           </nav>
+        </header>
 
-          {menuOpen && (
-            <div className="mt-4 flex flex-col gap-1 rounded-xl bg-white/15 p-3 backdrop-blur-sm md:hidden">
+        {/* mobile / tablet drawer */}
+        {/* Kept mounted and slid off-screen so it animates on the way out too. */}
+        <div className="lg:hidden">
+          <div
+            aria-hidden
+            onClick={() => setMenuOpen(false)}
+            className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 motion-reduce:transition-none ${
+              menuOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+            }`}
+          />
+
+          <aside
+            id="mobile-nav"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
+            className={`fixed inset-y-0 right-0 z-50 flex w-[86%] max-w-sm flex-col bg-white px-6 py-7 shadow-[0_0_60px_-15px_rgba(15,23,42,0.4)] transition-transform duration-300 ease-out motion-reduce:transition-none ${
+              menuOpen ? 'translate-x-0' : 'translate-x-full'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <Link
+                to="/"
+                onClick={() => setMenuOpen(false)}
+                className="font-Hero text-[26px] leading-none tracking-tight text-black"
+              >
+                HeatTrack
+              </Link>
+              <button
+                type="button"
+                onClick={() => setMenuOpen(false)}
+                aria-label="Close menu"
+                className="-mr-2 rounded-lg p-2 text-black/60 transition-colors hover:bg-neutral-100 hover:text-black"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <nav className="mt-9 flex flex-col gap-1">
               {NAV_LINKS.map((l) => (
                 <a
                   key={l.href}
                   href={l.href}
                   onClick={() => setMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 text-[15px] text-white transition-colors hover:bg-white/15"
+                  className="rounded-xl px-4 py-3.5 text-[17px] font-semibold tracking-[-0.01em] text-black/80 transition-colors hover:bg-neutral-100 hover:text-black"
                 >
                   {l.label}
                 </a>
               ))}
+            </nav>
+
+            <div className="mt-8 flex flex-col gap-3 border-t border-slate-200 pt-8">
               <Link
                 to="/login"
-                className="rounded-lg px-3 py-2 text-[15px] font-medium text-white transition-colors hover:bg-white/15 sm:hidden"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-xl border border-slate-200 py-3 text-center text-[15.5px] font-medium text-black transition-colors hover:bg-neutral-100"
               >
                 Sign in
               </Link>
+              <Link
+                to="/register"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-xl bg-black py-3 text-center text-[15.5px] font-semibold text-white shadow-[0_10px_30px_-10px_rgba(15,23,42,0.55)] transition-colors hover:bg-neutral-800"
+              >
+                Get started
+              </Link>
             </div>
-          )}
-        </header>
+          </aside>
+        </div>
 
         {/* hero */}
         <main className="relative z-10 flex flex-1 items-center px-6 py-14 sm:px-10 sm:py-16 text-black">
@@ -758,7 +825,7 @@ export default function LandingPage() {
 
             {/* right */}
             <div className="relative">
-              <div className="flex min-h-[340px] flex-col justify-between rounded-2xl border border-white/50 bg-/95 p-5 shadow-[0_30px_70px_-30px_rgba(15,23,42,0.55)] backdrop-blur-sm sm:min-h-[400px] sm:p-7">
+              <div className="flex min-h-85 flex-col justify-between rounded-2xl border border-white/50 bg-/95 p-5 shadow-[0_30px_70px_-30px_rgba(15,23,42,0.55)] backdrop-blur-sm sm:min-h-100 sm:p-7">
                 
               </div>
             </div>

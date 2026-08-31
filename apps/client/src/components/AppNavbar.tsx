@@ -38,7 +38,7 @@ const AppNavbar = ({
         <span className="font-Hero text-[19px] tracking-tight">HeatTrack</span>
       </Link>
 
-      <nav className="hidden items-center gap-1 rounded-full border border-neutral-200 bg-white p-1 shadow-sm sm:flex">
+      <nav className="hidden items-center gap-1 rounded-full border border-neutral-200 bg-white p-1 shadow-sm lg:flex">
         {links.map((l) => (
           <Link
             key={l.key}
@@ -61,10 +61,12 @@ const AppNavbar = ({
             type="button"
             onClick={() => githubSync.mutate()}
             disabled={githubSync.isPending}
+            aria-label={githubSync.isPending ? 'Syncing GitHub' : 'Sync GitHub'}
+            title="Sync GitHub"
             className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-sm font-medium shadow-sm transition-colors hover:bg-neutral-50 disabled:opacity-60"
           >
             <GitBranch className="size-3.5" />
-            <span className="hidden sm:inline">
+            <span className="hidden lg:inline">
               {githubSync.isPending ? 'Syncing…' : 'Sync GitHub'}
             </span>
           </button>
