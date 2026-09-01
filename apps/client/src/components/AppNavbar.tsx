@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { Activity, ChevronDown, GitBranch, GitCompare, LayoutDashboard, LogOut, Settings, Users } from 'lucide-react'
+import { ChevronDown, GitBranch, GitCompare, LayoutDashboard, LogOut, Settings, Users } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useGithubSync } from '@/hooks/useGithub'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -32,10 +32,10 @@ const AppNavbar = ({
   return (
     <header className="flex items-center justify-between gap-4 py-6">
       <Link to="/" className="flex items-center gap-2">
-        <span className="grid size-7 place-items-center rounded-md bg-neutral-900">
-          <Activity className="size-4 text-white" />
+        <span className="grid size-7 place-items-center overflow-hidden rounded-md bg-black">
+          <img src="/Logo.png" alt="" className="size-5 object-contain" />
         </span>
-        <span className="font-Hero text-[19px] tracking-tight">HeatTrack</span>
+        <span className="font-Hero text-[19px] tracking-tight">Loop In</span>
       </Link>
 
       <nav className="hidden items-center gap-1 rounded-full border border-neutral-200 bg-white p-1 shadow-sm lg:flex">

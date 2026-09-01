@@ -27,16 +27,16 @@ const MUTED = '#94a3b8'
 const SUBTLE = '#64748b'
 const HEAT = ['#e2e8f0', '#cbd5e1', '#94a3b8', '#475569', '#0f172a'] as const
 
-// The same mark the login page and app navbar use: lucide's Activity glyph,
-// white on a black rounded tile. Satori has no icon set, so the glyph is
-// inlined as an SVG data URI and drawn as an image.
-const ACTIVITY_PATH =
-  'M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2'
+// The Loop In mark, white on a black rounded tile, matching the app navbar.
+// Drawn as a vector rather than embedding public/Logo.png: that file is 520KB,
+// which would add roughly 710KB of base64 to every image this renders.
+const LOOP_PATH =
+  'M12,12 C10.5,8.5 5,8.5 5,12 C5,15.5 10.5,15.5 12,12 C13.5,8.5 19,8.5 19,12 C19,15.5 13.5,15.5 12,12 Z'
 
-const activityMark = (size: number, color: string) =>
+const loopMark = (size: number, color: string) =>
   'data:image/svg+xml;base64,' +
   Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${ACTIVITY_PATH}"/></svg>`
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="${LOOP_PATH}"/></svg>`
   ).toString('base64')
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -182,14 +182,14 @@ export const generateHeatmapImage = async (
               }
             },
               React.createElement('img', {
-                src: activityMark(13, '#ffffff'),
+                src: loopMark(14, '#ffffff'),
                 width: 13,
                 height: 13,
               })
             ),
             React.createElement('div', {
               style: { color: INK, fontSize: '21px', letterSpacing: '0.5px' }
-            }, 'HeatTrack')
+            }, 'Loop In')
           ),
           React.createElement('div', {
             style: { color: MUTED, fontSize: '20px', letterSpacing: '1px' }

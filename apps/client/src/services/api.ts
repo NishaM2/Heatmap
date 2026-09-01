@@ -13,6 +13,14 @@ const parseBody = async (response: Response) => {
     }
 }
 
+export interface ParsedLog {
+    categoryId: string
+    categoryName: string
+    categoryColor: string
+    effortLevel: number
+    note: string
+}
+
 export interface ApiError extends Error {
     code?: string
     status?: number
@@ -104,6 +112,12 @@ export const logApi = {
        
     delete: (id: string) =>
         request(`/logs/${id}`, { method: 'DELETE' }),
+
+    parse: (text: string): Promise<ParsedLog> =>
+        request('/logs/parse', {
+            method: 'POST',
+            body: JSON.stringify({ text }),
+        }),
 
     deleteAll: () => 
         request('/logs', { method: 'DELETE' }),

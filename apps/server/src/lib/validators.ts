@@ -105,6 +105,15 @@ export const setPasswordSchema = z.object({
         .max(128, 'Password cannot exceed 128 characters'),
 })
 
+//one sentence in, one log out. The upper bound protects the free-tier quota
+//from someone pasting an essay into the box.
+export const parseLogSchema = z.object({
+    text: z.string()
+        .trim()
+        .min(3, 'Say a little more about the day')
+        .max(300, 'Keep it to a sentence or two'),
+})
+
 export const loginSchema = z.object({
     email: z.string().email('Invalid email'),
     password: z.string().min(1, 'password is required'),
@@ -120,3 +129,4 @@ export type UpdateSharedGoal = z.infer<typeof updateSharedGoalSchema>
 export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>
 export type SetPasswordInput = z.infer<typeof setPasswordSchema>
+export type ParseLogInput = z.infer<typeof parseLogSchema>

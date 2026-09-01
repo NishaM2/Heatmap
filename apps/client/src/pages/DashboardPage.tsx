@@ -28,6 +28,7 @@ import PageBackdrop from '@/components/PageBackdrop'
 import AppNavbar from '@/components/AppNavbar'
 import DayModal from '@/components/DayModal'
 import CreateCategoryModal from '@/components/CreateCategoryModal'
+import QuickLog from '@/components/QuickLog'
 import { useConfirm } from '@/hooks/useConfirm'
 import {
   DropdownMenu,
@@ -401,6 +402,8 @@ const DashboardPage = () => {
             Add category
           </button>
         </div>
+
+        <QuickLog />
 
         {/* heatmap card */}
         <section className="mt-5 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">

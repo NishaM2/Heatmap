@@ -173,7 +173,7 @@ const githubLinkError = (code: string, email?: string | null): string => {
         email ?? 'that address'
       }, or add it as your primary email in GitHub → Settings → Emails and try again.`
     case 'account_already_linked_to_different_user':
-      return 'That GitHub account is already connected to a different HeatTrack account. Disconnect it there first, or use another GitHub account.'
+      return 'That GitHub account is already connected to a different Loop In account. Disconnect it there first, or use another GitHub account.'
     case 'unable_to_link_account':
       return 'GitHub would not link to your account. Sign out, sign back in, and try once more.'
     default:

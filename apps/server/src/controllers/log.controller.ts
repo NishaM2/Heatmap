@@ -1,5 +1,21 @@
 import { NextFunction, Request, Response } from "express";
 import * as logService from '../services/log.service'
+import { parseLogSentence, ParseLogError } from '../services/parseLog.service'
+
+export const parseLog = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user!.id
+        const parsed = await parseLogSentence(userId, req.body.text)
+        return res.status(200).json(parsed)
+    } catch (error) {
+        // Anything the user can fix is a 400 with a readable message; a missing
+        // key or a Gemini outage falls through to the global handler as a 500.
+        if (error instanceof ParseLogError) {
+            return res.status(400).json({ message: error.message })
+        }
+        next(error)
+    }
+}
 
 export const createLog = async (req: Request, res: Response, next: NextFunction) => {
     try {

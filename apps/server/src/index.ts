@@ -83,10 +83,22 @@ const shareLimiter = rateLimit({
     }
 })
 
+// Every call here spends Gemini free-tier quota, which is per-minute and
+// per-day — far scarcer than database time, so it gets its own tighter cap.
+const aiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 12,
+    message: {
+        status: 'error',
+        message: 'Too many quick logs in a row — wait a minute and try again'
+    }
+})
+
 app.use(globalLimiter)
 
 app.use('/api/auth/sign-in/email', authLimiter)
 app.use('/api/auth/sign-up/email', authLimiter)
+app.use('/api/logs/parse', aiLimiter)
 app.use('/api/account/set-password', authLimiter)
 
 app.get('/api/auth-providers', (req, res) => {

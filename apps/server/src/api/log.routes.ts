@@ -1,12 +1,13 @@
 import { Router } from "express";
 import authMiddleware from "../middleware/auth.middleware";
 import validate, { validateParams, validateQuery } from "../middleware/validate.middleware";
-import { insertLogSchema, idParamSchema, categoryIdParamSchema, dayParamSchema, yearQuerySchema} from "../lib/validators";
-import { createLog, getOverallLog, getYearLog, getDayLog, deleteLog, deleteAllLogs } from '../controllers/log.controller'
+import { insertLogSchema, idParamSchema, categoryIdParamSchema, dayParamSchema, yearQuerySchema, parseLogSchema } from "../lib/validators";
+import { createLog, getOverallLog, getYearLog, getDayLog, deleteLog, deleteAllLogs, parseLog } from '../controllers/log.controller'
 
 const router = Router()
 
 router.post('/', authMiddleware, validate(insertLogSchema), createLog)
+router.post('/parse', authMiddleware, validate(parseLogSchema), parseLog)
 router.get('/overall', authMiddleware, validateQuery(yearQuerySchema), getOverallLog)
 router.get('/:categoryId', authMiddleware, validateParams(categoryIdParamSchema), validateQuery(yearQuerySchema), getYearLog)
 router.get('/:categoryId/:date', authMiddleware, validateParams(dayParamSchema), getDayLog)

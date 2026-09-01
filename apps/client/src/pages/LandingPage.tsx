@@ -10,7 +10,7 @@ import {
   Menu,
   NotebookPen,
   Palette,
-  Trophy,
+  Sparkles,
   Users,
   X,
 } from 'lucide-react'
@@ -44,7 +44,89 @@ const NAV_LINKS = [
   { label: 'FAQ', href: '#faq' },
 ]
 
-// how it works 
+// hero mark
+const LOOP_PATH =
+  'M120,60 C105,25 50,25 50,60 C50,95 105,95 120,60 C135,25 190,25 190,60 C190,95 135,95 120,60 Z'
+
+const LoopMark = () => {
+  const { ref, shown } = useReveal<HTMLDivElement>()
+
+  return (
+    <div
+      ref={ref}
+      className="flex min-h-85 flex-col items-center justify-center gap-8 rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-[0_30px_70px_-30px_rgba(15,23,42,0.55)] backdrop-blur-sm sm:min-h-100 sm:p-7"
+    >
+      <style>{`
+        @keyframes loop-travel { to { stroke-dashoffset: -1; } }
+        @keyframes loop-fade { from { opacity: 0 } to { opacity: 1 } }
+        .loop-comet {
+          stroke-dasharray: 0.14 0.86;
+          animation: loop-travel 4.5s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .loop-comet { animation: none; stroke-dasharray: none; opacity: 0.35; }
+        }
+      `}</style>
+
+      <svg
+        viewBox="0 0 240 120"
+        role="img"
+        aria-label="A loop being traced over and over"
+        className="w-full max-w-80"
+        style={{
+          opacity: shown ? 1 : 0,
+          transform: shown ? 'none' : 'scale(0.96)',
+          transition: 'opacity 700ms ease, transform 700ms ease',
+        }}
+      >
+        <defs>
+          <linearGradient id="loop-grad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#0f172a" />
+            <stop offset="50%" stopColor="#475569" />
+            <stop offset="100%" stopColor="#0f172a" />
+          </linearGradient>
+        </defs>
+
+        {/* the full loop, sitting quietly underneath */}
+        <path
+          d={LOOP_PATH}
+          fill="none"
+          stroke="#e2e8f0"
+          strokeWidth="9"
+          strokeLinecap="round"
+        />
+
+        {/* the part that keeps going round */}
+        <path
+          className="loop-comet"
+          d={LOOP_PATH}
+          pathLength={1}
+          fill="none"
+          stroke="url(#loop-grad)"
+          strokeWidth="9"
+          strokeLinecap="round"
+        />
+      </svg>
+
+      <div
+        className="text-center"
+        style={{
+          opacity: shown ? 1 : 0,
+          transition: 'opacity 700ms ease 300ms',
+        }}
+      >
+        <p className="font-Hero text-[26px] leading-none tracking-tight text-black sm:text-[30px]">
+          Show up. Log it. Go again.
+        </p>
+        <p className="mx-auto mt-3 max-w-64 text-[14.5px] leading-relaxed text-black/55">
+          One square a day, for as long as you keep coming back.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// how it works
 
 const STEPS = [
   {
@@ -55,7 +137,7 @@ const STEPS = [
   {
     Icon: NotebookPen,
     title: 'Log your effort',
-    body: 'Tap a day and pick Light, Moderate, Hard or Intense — then add a short note if the day is worth remembering.',
+    body: 'Tap a day and choose Light, Moderate, Hard, or Intense or type “ran 5k, brutal” to auto-fill the habit, effort, and note.',
   },
   {
     Icon: Flame,
@@ -249,9 +331,9 @@ const FEATURES = [
     description: 'Log how hard the day actually was, from Light through to Intense.',
   },
   {
-    title: 'Streaks & milestones',
-    Icon: Trophy,
-    description: 'Current and longest streaks, with markers at 7, 30, 60, 100 and 365 days.',
+    title: 'Log it by typing',
+    Icon: Sparkles,
+    description: 'Ran 5k this morning, brutal.” It identifies the habit, effort, and note before saving.',
   },
   {
     title: 'GitHub sync',
@@ -273,11 +355,14 @@ const FEATURES = [
 const FeatureCard = ({
   feature,
 }: {
-  feature: { title: string; Icon: typeof Flame; description: string }
+  feature: { title: string; Icon: typeof Flame; description: string; wide?: boolean }
 }) => {
   const { title, Icon, description } = feature
   return (
-    <div className="group relative overflow-hidden p-6 md:p-8">
+    <div
+      className={`group relative overflow-hidden p-6 md:p-8 
+    `}
+    >
       {/* faint grid that lights up under the cursor */}
       <div
         aria-hidden
@@ -372,7 +457,7 @@ const FAQS = [
     a: 'Connect GitHub from Settings and your commit history fills in a habit named “coding”, once a night. More commits on a day means a darker square. It only ever writes to that one habit, so nothing you have logged by hand elsewhere is touched.',
   },
   {
-    q: 'Do I need a GitHub account to use HeatTrack?',
+    q: 'Do I need a GitHub account to use Loop In?',
     a: 'No. An email address and password is all you need, and everything except the commit sync works exactly the same. GitHub is there for people who want their coding days filled in automatically instead of logged by hand.',
   },
   {
@@ -555,11 +640,11 @@ const Footer = () => {
 
           <div>
             <Link to="/" className="inline-flex items-center gap-2.5">
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-black">
-                <Flame className="h-4 w-4 text-white" />
+              <span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-black">
+                <img src="/Logo.png" alt="" className="h-5 w-5 object-contain" />
               </span>
               <span className="text-[20px] font-semibold tracking-[-0.02em] text-black">
-                HeatTrack
+                Loop In
               </span>
             </Link>
             <p className="mt-4 max-w-60 text-[14px] leading-relaxed text-black/50">
@@ -622,14 +707,14 @@ const Footer = () => {
               'linear-gradient(to bottom, #000 0%, #000 42%, rgba(0,0,0,0.35) 82%, transparent 100%)',
           }}
         >
-          HeatTrack
+          Loop In
         </h2>
       </div>
 
       {/* bottom bar */}
       <div className="relative flex flex-wrap items-center justify-center gap-x-2 gap-y-1 pb-8 text-center">
         <p className="text-[13.5px] text-black/45">
-          © {new Date().getFullYear()} HeatTrack
+          © {new Date().getFullYear()} Loop In
         </p>
         <span aria-hidden className="text-black/25">·</span>
         <p className="text-[13.5px] text-black/45">
@@ -678,7 +763,7 @@ export default function LandingPage() {
         <header className="relative z-20 px-6 pt-6 sm:px-10 sm:pt-8">
           <nav className="flex items-center justify-between gap-6">
             <Link to="/" className="text-xl font-semibold tracking-tight text-black sm:text-[22px]">
-              HeatTrack
+              Loop In
             </Link>
 
             {/* lg, not md, so tablets get the drawer rather than a cramped bar */}
@@ -741,7 +826,7 @@ export default function LandingPage() {
                 onClick={() => setMenuOpen(false)}
                 className="font-Hero text-[26px] leading-none tracking-tight text-black"
               >
-                HeatTrack
+                Loop In
               </Link>
               <button
                 type="button"
@@ -825,9 +910,7 @@ export default function LandingPage() {
 
             {/* right */}
             <div className="relative">
-              <div className="flex min-h-85 flex-col justify-between rounded-2xl border border-white/50 bg-/95 p-5 shadow-[0_30px_70px_-30px_rgba(15,23,42,0.55)] backdrop-blur-sm sm:min-h-100 sm:p-7">
-                
-              </div>
+              <LoopMark />
             </div>
           </div>
         </main>

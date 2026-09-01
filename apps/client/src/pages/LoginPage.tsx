@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { authClient } from '@/lib/authClient'
-import { Activity, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { AlertCircle, Eye, EyeOff } from 'lucide-react'
 import PageBackdrop from '@/components/PageBackdrop'
 import SocialAuthButtons from '@/components/SocialAuthButtons'
 import { oauthCallbackURL, useAuthProviders, type SocialProvider } from '@/lib/authProviders'
@@ -52,10 +52,10 @@ const LoginPage = () => {
       <div className="relative z-10 flex min-h-[calc(100vh-1.5rem)] flex-col items-center justify-center px-5 py-12">
 
       <Link to="/" className="mb-6 inline-flex items-center gap-2">
-        <span className="grid size-7 place-items-center rounded-md bg-neutral-900">
-          <Activity className="size-4 text-white" />
+        <span className="grid size-7 place-items-center overflow-hidden rounded-md bg-black">
+          <img src="/Logo.png" alt="" className="size-5 object-contain" />
         </span>
-        <span className="font-heading text-sm font-semibold tracking-tight">HeatTrack</span>
+        <span className="font-heading text-sm font-semibold tracking-tight">Loop In</span>
       </Link>
 
       <div className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">

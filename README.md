@@ -1,4 +1,4 @@
-# HeatTrack
+# Loop In
 
 Daily activity tracker with GitHub-style contribution heatmaps. Log effort per
 category per day, keep streaks, compare progress with friends, and auto-fill

@@ -1,5 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { logApi } from '@/services/api'
+import { toast } from 'sonner'
+import { logApi, type ApiError } from '@/services/api'
+
+// Reads a sentence into a draft log. It writes nothing the caller shows the
+// result for confirmation and then saves it through useUpsertLog.
+export const useParseLog = () =>
+  useMutation({
+    mutationFn: (text: string) => logApi.parse(text),
+    onError: (err: ApiError) => {
+      // The server explains what to do about it, so show that rather than a
+      // generic failure.
+      toast.error(err.message || 'Could not read that')
+    },
+  })
 
 type Log = {
   date: string
