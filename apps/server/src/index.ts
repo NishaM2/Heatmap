@@ -14,8 +14,6 @@ import { startGitHubSyncJob } from './jobs/githubSync.job'
 import githubRouter from './api/github.routes'
 import friendRouter from './api/friend.routes'
 import sharedGoalRouter from './api/sharedGoal.routes'
-import { createServer } from 'http'
-import { initSocket } from './lib/socket'
 import rateLimit from 'express-rate-limit'
 import shareRouter from './api/share.routes'
 import accountRouter from './api/account.routes'
@@ -25,17 +23,16 @@ const app = express()
 const PORT = process.env.PORT || 3000
 
 if (process.env.NODE_ENV === 'production') {
-    app.set('trust proxy', 1)
+    app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS) || 2)
 }
 
-const wsOrigin = SERVER_URL.replace(/^http/, 'ws')
 // It secures HTTP headers automatically and prevents from attacks
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'", "'unsafe-inline'"],
-            connectSrc: ["'self'", SERVER_URL, wsOrigin]
+            connectSrc: ["'self'", SERVER_URL]
         }
     }
 }))
@@ -145,10 +142,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: NextFuncti
     })
 })
 
-const httpServer = createServer(app)
-initSocket(httpServer)
-
-httpServer.listen(PORT, () => {
+app.listen(PORT, () => {
     console.log(`server Running on http://localhost:${PORT}`)
     console.log(`Environment: ${process.env.NODE_ENV}`)
     console.log(`Health check: http://localhost:${PORT}/api/health`)

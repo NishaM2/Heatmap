@@ -2,7 +2,6 @@ import { eq, and, or, ne, sql, inArray } from 'drizzle-orm'
 import { db } from '../db'
 import { friendships, betterAuthUsers, dailyLogs } from '../db/schema'
 import { calculateCurrentStreak } from './streak.service'
-import { sendNotification } from '../lib/socket'
 
 const publicUserColumns = {
     id: betterAuthUsers.id,
@@ -166,10 +165,6 @@ export const sendRequest = async (userId: string, receiverId: string,) => {
             .where(eq(friendships.id, existing.id))
             .returning()
 
-        sendNotification(receiverId, 'friend_request', `You have a new friend request`, {
-            friendshipId: revived[0].id,
-            requesterId: userId
-        })
         return revived
     }
 
@@ -181,10 +176,6 @@ export const sendRequest = async (userId: string, receiverId: string,) => {
         })
         .returning()
 
-    sendNotification(receiverId, 'friend_request', `You have a new friend request`, {
-        friendshipId: newfriendship[0].id,
-        requesterId: userId
-    })
     return newfriendship
 }
 
@@ -216,9 +207,6 @@ export const acceptRequest = async (userId: string, friendshipId: string) => {
         .where(eq(friendships.id, friendshipId))
         .returning()
 
-    sendNotification(request[0].requesterId, 'friend_accepted', `Your friend request was accepted`, {
-        friendshipId: friendshipId
-    })
     return updated[0]
 }
 
