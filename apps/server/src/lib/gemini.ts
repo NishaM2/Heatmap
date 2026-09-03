@@ -1,6 +1,8 @@
 import { GoogleGenAI } from '@google/genai'
 
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash'
+const rawModel = (process.env.GEMINI_MODEL || '').trim().replace(/^["']|["']$/g, '')
+
+export const GEMINI_MODEL = rawModel || 'gemini-3.5-flash-lite'
 
 let client: GoogleGenAI | null = null
 

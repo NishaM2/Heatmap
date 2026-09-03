@@ -80,10 +80,10 @@ export const parseLogSentence = async (userId: string, text: string): Promise<Pa
             // Extraction, not creative writing — keep it repeatable.
             temperature: 0,
             maxOutputTokens: 400,
-        
-            ...(GEMINI_MODEL.startsWith('gemini-2.0')
-                ? {}
-                : { thinkingConfig: { thinkingBudget: 0 } }),
+
+            ...(GEMINI_MODEL.startsWith('gemini-2.5')
+                ? { thinkingConfig: { thinkingBudget: 0 } }
+                : {}),
         },
     })
 
@@ -112,7 +112,11 @@ export const parseLogSentence = async (userId: string, text: string): Promise<Pa
     }
 
     const level = Number(parsed.effortLevel)
-    const effortLevel = Number.isInteger(level) && level >= 1 && level <= 4 ? level : 2
+    // Overshooting the scale means "harder than 4", not "average" — clamp to the
+    // nearest bound so an intense day cannot land on moderate.
+    const effortLevel = Number.isFinite(level)
+        ? Math.min(4, Math.max(1, Math.round(level)))
+        : 2
 
     const note = typeof parsed.note === 'string' ? parsed.note.trim().slice(0, 140) : ''
 

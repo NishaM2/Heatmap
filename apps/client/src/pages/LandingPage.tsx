@@ -54,7 +54,7 @@ const LoopMark = () => {
   return (
     <div
       ref={ref}
-      className="flex min-h-85 flex-col items-center justify-center gap-8 rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-[0_30px_70px_-30px_rgba(15,23,42,0.55)] backdrop-blur-sm sm:min-h-100 sm:p-7"
+      className="flex min-h-85 flex-col items-center justify-center gap-8 rounded-2xl p-5  sm:min-h-100 sm:p-7"
     >
       <style>{`
         @keyframes loop-travel { to { stroke-dashoffset: -1; } }
@@ -72,7 +72,7 @@ const LoopMark = () => {
         viewBox="0 0 240 120"
         role="img"
         aria-label="A loop being traced over and over"
-        className="w-full max-w-80"
+        className="w-full max-w-100"
         style={{
           opacity: shown ? 1 : 0,
           transform: shown ? 'none' : 'scale(0.96)',
